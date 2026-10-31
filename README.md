@@ -34,4 +34,4 @@ pnpm data:fake # reescribe src/data/goles.json
 
 ## Foto placeholder
 
-El retrato se genera a partir de `public/cr7_portrait.png`. Esa foto es **solo local**: está en `.gitignore` y no se publica. Antes de publicar se elige una foto con licencia (ver [docs/SPEC.md](docs/SPEC.md)).
+El retrato se genera a partir de `public/cr7_portrait.png`. Esa foto es **solo local**: está en `.gitignore` y no se publica. Los tests y el build no la necesitan, porque el muestreo (`src/portrait/sample.ts`) se prueba con imágenes sintéticas. Antes de publicar se elige una foto con licencia (ver [docs/SPEC.md](docs/SPEC.md)).
