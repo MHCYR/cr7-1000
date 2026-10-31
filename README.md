@@ -9,16 +9,16 @@ Fan page de código creativo: la figura de Cristiano Ronaldo hecha de puntos, do
 ## Requisitos
 
 - Node 26 LTS (fijado en `.node-version`; con `fnm`, ejecuta `fnm use`)
-- npm (incluido con Node)
+- pnpm 12 (fijado en `packageManager` de `package.json`)
 
 ## Comandos
 
 ```bash
-npm install      # instala dependencias
-npm run dev      # servidor de desarrollo
-npm run build    # comprobación de tipos + build de producción en dist/
-npm run lint     # oxlint
-npm run preview  # sirve el build de dist/
+pnpm install   # instala dependencias
+pnpm dev       # servidor de desarrollo
+pnpm build     # comprobación de tipos + build de producción en dist/
+pnpm lint      # oxlint
+pnpm preview   # sirve el build de dist/
 ```
 
 ## Foto placeholder

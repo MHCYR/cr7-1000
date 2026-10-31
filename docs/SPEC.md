@@ -20,7 +20,7 @@ Vocabulario en [GLOSSARY.md](../GLOSSARY.md). Decisiones con contexto en [docs/a
 - Entrada: **la imagen se construye al entrar**, como en vadimcarazan.com.
 
 ### Plataforma
-- **Node 26 LTS** (fijado en `.node-version`) y npm. Siempre se instalan las versiones LTS o estables más recientes.
+- **Node 26 LTS** (fijado en `.node-version`) y **pnpm 12** (fijado en `packageManager`). Siempre se instalan las versiones LTS o estables más recientes.
 - Vite + React + **React Three Fiber** + drei ([ADR 0003](./adr/0003-react-three-fiber.md)); GSAP o drei para las animaciones de cámara.
 - **Primero desktop**, también funcional en móvil (unos 20k puntos de polvo en móvil).
 - Español, con los textos separados del código (listo para i18n).
