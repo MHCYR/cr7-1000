@@ -23,6 +23,9 @@ dist-ssr
 *.sln
 *.sw?
 
+# Git worktrees for parallel work, always inside the project
+.worktrees/
+
 # Local-only placeholder photo and tooling (never published, see docs/SPEC.md)
 public/cr7_portrait.png
 assets-local/
