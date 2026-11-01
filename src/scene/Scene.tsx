@@ -1,11 +1,13 @@
 import { useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { MathUtils } from 'three'
 import { goles } from '../data/goles.ts'
 import { assemblyEnd } from '../portrait/assemble.ts'
 import { PORTRAIT_URL, loadImagePixels } from '../portrait/load.ts'
 import { goalColors } from '../portrait/palette.ts'
 import { type Portrait, samplePortrait } from '../portrait/sample.ts'
 import { type PortraitSettings, buildBuffers, defaultSettings, samplingOptions } from '../portrait/settings.ts'
+import { type ScrollState, TUNNEL, scrollState, tunnelPositions } from '../tunnel/tunnel.ts'
 import { AssemblingPoints } from './AssemblingPoints.tsx'
 import { createClock, restartClock, tickClock } from './animationClock.ts'
 
@@ -13,6 +15,9 @@ import { createClock, restartClock, tickClock } from './animationClock.ts'
 const GOAL_SIZE = 2.4
 /** Goal pixel outline, as a share of its side. */
 const GOAL_OUTLINE = 0.16
+
+/** How fast the scene catches up with the scroll: wheel steps glide instead of jumping. */
+const SCROLL_DAMPING = 8
 
 /** One object for every render, so a Scene without settings never sees them change. */
 const DEFAULT_SETTINGS = defaultSettings()
@@ -27,7 +32,8 @@ interface SceneProps {
 }
 
 /**
- * Act one of prototype B: the portrait of fill and goal pixels, built on entry. Each change of
+ * Prototype B: the portrait of fill and goal pixels, built on entry, and the tunnel the goal
+ * pixels fly to on scroll while the fill fades and the camera moves along Z. Each change of
  * the settings does the least work it needs: the photo is decoded once, sampled again only
  * for the sampling settings and the seed, and its buffers are rebuilt only for the settings
  * that shape them. Duration, initial opacity and fit just update the shader and the scale.
@@ -94,13 +100,27 @@ function PortraitCloud({ portrait, settings, restart }: { portrait: Portrait; se
   const reducedMotion = useRef(prefersReducedMotion())
   const restarted = useRef(restart)
 
-  useFrame((state) => {
+  // Tunnel positions do not depend on the settings: fixed seed, world units.
+  const tunnel = useMemo(() => tunnelPositions(portrait.goals.count), [portrait.goals.count])
+  // Read and damped every frame, outside React: scrolling never rerenders the scene.
+  const scroll = useRef<ScrollState>({ progress: 0, cameraZ: TUNNEL.cameraStart })
+
+  useFrame((state, delta) => {
     if (restarted.current !== restart) {
       restarted.current = restart
       reducedMotion.current = prefersReducedMotion()
       restartClock(clock.current, end, reducedMotion.current)
     }
     tickClock(clock.current, state.clock.elapsedTime, end, reducedMotion.current)
+
+    const target = scrollState(window.scrollY, window.innerHeight, portrait.goals.count)
+    const current = scroll.current
+    if (reducedMotion.current) Object.assign(current, target)
+    else {
+      current.progress = MathUtils.damp(current.progress, target.progress, SCROLL_DAMPING, delta)
+      current.cameraZ = MathUtils.damp(current.cameraZ, target.cameraZ, SCROLL_DAMPING, delta)
+    }
+    state.camera.position.z = current.cameraZ
   })
 
   return (
@@ -112,6 +132,7 @@ function PortraitCloud({ portrait, settings, restart }: { portrait: Portrait; se
         colors={portrait.fill.colors}
         sizes={buffers.fillSizes}
         clock={clock}
+        scroll={scroll}
         size={portrait.cellSize * scale}
         duration={assembly.duration}
         initialOpacity={initialOpacity}
@@ -123,6 +144,8 @@ function PortraitCloud({ portrait, settings, restart }: { portrait: Portrait; se
         colors={goals.colors}
         sizes={goals.sizes}
         clock={clock}
+        scroll={scroll}
+        tunnel={tunnel}
         size={portrait.cellSize * scale * GOAL_SIZE}
         outline={GOAL_OUTLINE}
         duration={assembly.duration}

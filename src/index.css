@@ -19,6 +19,11 @@ body,
   height: 100%;
 }
 
+.stage {
+  position: fixed;
+  inset: 0;
+}
+
 .hud {
   position: fixed;
   top: 24px;
