@@ -12,17 +12,22 @@ export const FILL_SIZE = { min: 0.5, max: 1.2 } as const
 export const EDGE_DISPERSION = 6
 
 /** How much the fill pixels on the very edge shrink (0 = not at all, 1 = to nothing). */
-const EDGE_SHRINK = 0.5
+export const EDGE_SHRINK = 0.5
 
 /**
  * Random side for every fill pixel, in [FILL_SIZE.min, FILL_SIZE.max] relative to a grid
  * cell, shrunk by up to EDGE_SHRINK on the pixels at the edge of the figure.
  */
-export function fillSizes(edge: Float32Array, seed: number): Float32Array {
+export function fillSizes(
+  edge: Float32Array,
+  seed: number,
+  size: { min: number; max: number } = FILL_SIZE,
+  shrink: number = EDGE_SHRINK,
+): Float32Array {
   const random = createRandom(seed)
   const sizes = new Float32Array(edge.length)
   for (let i = 0; i < sizes.length; i++) {
-    sizes[i] = (FILL_SIZE.min + random() * (FILL_SIZE.max - FILL_SIZE.min)) * (1 - EDGE_SHRINK * edge[i])
+    sizes[i] = (size.min + random() * (size.max - size.min)) * (1 - shrink * edge[i])
   }
   return sizes
 }
@@ -32,14 +37,20 @@ export function fillSizes(edge: Float32Array, seed: number): Float32Array {
  * plane (z unchanged), up to EDGE_DISPERSION cells away. The distance grows with edge², so
  * pixels inside the figure (edge 0) stay exactly in their cells.
  */
-export function disperseEdges(positions: Float32Array, edge: Float32Array, cellSize: number, seed: number): Float32Array {
+export function disperseEdges(
+  positions: Float32Array,
+  edge: Float32Array,
+  cellSize: number,
+  seed: number,
+  dispersion: number = EDGE_DISPERSION,
+): Float32Array {
   const random = createRandom(seed)
   const dispersed = new Float32Array(positions)
   for (let i = 0; i < edge.length; i++) {
     // Always two randoms per pixel, so a pixel's scatter does not depend on the others' edge.
     const angle = random() * 2 * Math.PI
     const radius = Math.sqrt(random())
-    const distance = radius * EDGE_DISPERSION * cellSize * edge[i] ** 2
+    const distance = radius * dispersion * cellSize * edge[i] ** 2
     dispersed[i * 3] += Math.cos(angle) * distance
     dispersed[i * 3 + 1] += Math.sin(angle) * distance
   }

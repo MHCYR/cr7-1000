@@ -27,6 +27,8 @@ export interface PortraitOptions {
   seed?: number
   /** Pixels with a lower alpha are background and produce nothing. */
   alphaThreshold?: number
+  /** Width of the edge band in grid cells; 0 leaves no fill pixel on the edge. */
+  edgeBand?: number
 }
 
 /**
@@ -40,7 +42,7 @@ export interface Portrait {
   /**
    * Colors are rgb triplets in [0, 1], ready for a THREE.BufferAttribute. `edge` is how close
    * each fill pixel is to the edge of the figure: 1 next to the background or the image border,
-   * falling to 0 at EDGE_BAND cells inside.
+   * falling to 0 at `edgeBand` (EDGE_BAND by default) cells inside.
    */
   fill: { count: number; positions: Float32Array; colors: Float32Array; edge: Float32Array }
   /** Goal pixel i holds goal number i + 1: chronological from the feet to the head. */
@@ -59,7 +61,7 @@ interface Cell {
 
 export function samplePortrait(image: ImageLike, options: PortraitOptions): Portrait {
   const { width, height, data } = image
-  const { fillCount, goalCount = GOAL_PIXELS, seed = 1000, alphaThreshold = 128 } = options
+  const { fillCount, goalCount = GOAL_PIXELS, seed = 1000, alphaThreshold = 128, edgeBand = EDGE_BAND } = options
 
   let opaquePixels = 0
   for (let i = 3; i < data.length; i += 4) if (data[i] >= alphaThreshold) opaquePixels++
@@ -103,7 +105,7 @@ export function samplePortrait(image: ImageLike, options: PortraitOptions): Port
   fillCells.forEach((cell, i) => {
     fill.positions.set([cell.x, cell.y, 0], i * 3)
     fill.colors.set([data[cell.pixel] / 255, data[cell.pixel + 1] / 255, data[cell.pixel + 2] / 255], i * 3)
-    fill.edge[i] = Math.max(0, 1 - (cell.depth - 1) / EDGE_BAND)
+    fill.edge[i] = edgeBand > 0 ? Math.max(0, 1 - (cell.depth - 1) / edgeBand) : 0
   })
 
   const goals = { count: goalCount, positions: new Float32Array(goalCount * 3) }

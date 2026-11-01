@@ -18,37 +18,49 @@ export const ASSEMBLY = {
   goalsStagger: 1.4,
 } as const
 
+export type AssemblyTiming = { -readonly [K in keyof typeof ASSEMBLY]: number }
+
+/** Width of the box the start positions fill, in portrait units; z is how far behind the portrait. */
+export const SCATTER = { x: 2.6, y: 1.6, z: 2.5 }
+
 /** When the last point lands; from then on the portrait is still. */
-export const ASSEMBLY_END = Math.max(ASSEMBLY.fillStagger, ASSEMBLY.goalsStart + ASSEMBLY.goalsStagger) + ASSEMBLY.duration
+export function assemblyEnd(timing: AssemblyTiming = ASSEMBLY): number {
+  return Math.max(timing.fillStagger, timing.goalsStart + timing.goalsStagger) + timing.duration
+}
+
+export const ASSEMBLY_END = assemblyEnd()
 
 /**
  * Start positions for the points whose portrait positions are `targets` (xyz triplets,
  * portrait units). They spread wider than the portrait and always behind it (z < 0).
  */
-export function scatterStart(targets: Float32Array, seed: number): Float32Array {
+export function scatterStart(targets: Float32Array, seed: number, scatter: typeof SCATTER = SCATTER): Float32Array {
   const random = createRandom(seed)
   const start = new Float32Array(targets.length)
   for (let i = 0; i < start.length; i += 3) {
-    start[i] = (random() - 0.5) * 2.6
-    start[i + 1] = (random() - 0.5) * 1.6
-    start[i + 2] = -0.5 - random() * 2.5
+    start[i] = (random() - 0.5) * scatter.x
+    start[i + 1] = (random() - 0.5) * scatter.y
+    start[i + 2] = -0.5 - random() * scatter.z
   }
   return start
 }
 
-/** Random start delays for the fill pixels, in [0, ASSEMBLY.fillStagger]. */
-export function fillDelays(count: number, seed: number): Float32Array {
+/** Random start delays for the fill pixels, in [0, fillStagger]. */
+export function fillDelays(count: number, seed: number, fillStagger: number = ASSEMBLY.fillStagger): Float32Array {
   const random = createRandom(seed)
   const delays = new Float32Array(count)
-  for (let i = 0; i < count; i++) delays[i] = random() * ASSEMBLY.fillStagger
+  for (let i = 0; i < count; i++) delays[i] = random() * fillStagger
   return delays
 }
 
 /** Start delays for the goal pixels in chronological order: goal 1 first. */
-export function goalDelays(count: number): Float32Array {
+export function goalDelays(
+  count: number,
+  { goalsStart, goalsStagger }: Pick<AssemblyTiming, 'goalsStart' | 'goalsStagger'> = ASSEMBLY,
+): Float32Array {
   const delays = new Float32Array(count)
   for (let i = 0; i < count; i++) {
-    delays[i] = ASSEMBLY.goalsStart + (count > 1 ? (ASSEMBLY.goalsStagger * i) / (count - 1) : 0)
+    delays[i] = goalsStart + (count > 1 ? (goalsStagger * i) / (count - 1) : 0)
   }
   return delays
 }
@@ -57,7 +69,7 @@ export function goalDelays(count: number): Float32Array {
  * How far a point with this delay is from its start (0) to its place in the portrait (1)
  * at `elapsed` seconds into the animation: ease-out cubic, exactly 1 once it lands.
  */
-export function assemblyOffset(elapsed: number, delay: number): number {
-  const local = Math.min(Math.max((elapsed - delay) / ASSEMBLY.duration, 0), 1)
+export function assemblyOffset(elapsed: number, delay: number, duration: number = ASSEMBLY.duration): number {
+  const local = Math.min(Math.max((elapsed - delay) / duration, 0), 1)
   return 1 - (1 - local) ** 3
 }
