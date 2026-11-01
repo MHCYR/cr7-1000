@@ -20,6 +20,7 @@ describe('defaultSettings', () => {
       fill: { size: { ...FILL_SIZE }, dispersion: EDGE_DISPERSION, shrink: EDGE_SHRINK },
       sampling: { density: FILL_DENSITY.desktop, edgeBand: EDGE_BAND },
       fit: { height: 0.88, width: 0.92 },
+      initialOpacity: 0.35,
       seed: 1000,
     })
   })
@@ -98,6 +99,16 @@ describe('buildBuffers', () => {
     expect(buffers.goalDelays[0]).toBe(5)
     expect(buffers.fillSizes.every((size) => size === 1)).toBe(true)
     expect(buildBuffers(portrait, settings)).toEqual(buffers)
+  })
+
+  it('ignores the settings that only reach the shader, so they never rebuild a buffer', () => {
+    const settings = defaultSettings()
+    const base = buildBuffers(portrait, settings)
+    settings.assembly.duration = 9
+    settings.initialOpacity = 1
+    settings.fit = { height: 0.5, width: 0.5 }
+
+    expect(buildBuffers(portrait, settings)).toEqual(base)
   })
 
   it('reshuffles the random buffers for another seed', () => {
