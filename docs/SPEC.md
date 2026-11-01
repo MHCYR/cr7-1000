@@ -11,9 +11,9 @@ Vocabulario en [GLOSSARY.md](../GLOSSARY.md). Decisiones con contexto en [docs/a
 - La página contempla desde el inicio el estado **post-1000**: todos los puntos encendidos, celebración y goles extra fuera de la figura.
 
 ### Visual
-- **Nube híbrida**: polvo decorativo + 1000 puntos de gol ([ADR 0001](./adr/0001-nube-hibrida-polvo-y-puntos-de-gol.md)).
+- **Nube híbrida**: puntos decorativos (polvo en el prototipo A, píxeles de relleno en el B) + 1000 puntos de gol ([ADR 0001](./adr/0001-nube-hibrida-polvo-y-puntos-de-gol.md)).
 - Forma: **foto + mapa de profundidad** generado con IA (Depth Anything V2). En el prototipo B el retrato es 2D y no necesita mapa de profundidad. Al principio se usa una foto **placeholder solo local**; antes de publicar se elige una con licencia o un arte propio.
-- Paleta: el polvo toma los **colores de la foto**; los goles marcados van en **dorado**; los goles faltantes, en **gris con un anillo pulsante**.
+- Paleta: los puntos decorativos toman los **colores de la foto**; los goles marcados van en **dorado**; los goles faltantes, en **gris con un anillo pulsante**.
 - Orden de los puntos de gol: **cronológico**, de los pies a la cabeza (o el orden del túnel en el prototipo B).
 - Clic en un gol: **la cámara vuela hasta él y se abre una ficha** con los 4 datos.
 - Interfaz extra: **línea de tiempo** (en el prototipo B es el propio scroll).
@@ -22,7 +22,7 @@ Vocabulario en [GLOSSARY.md](../GLOSSARY.md). Decisiones con contexto en [docs/a
 ### Plataforma
 - **Node 26 LTS** (fijado en `.node-version`) y **pnpm 12** (fijado en `packageManager`). Siempre se instalan las versiones LTS o estables más recientes.
 - Vite + React + **React Three Fiber** + drei ([ADR 0003](./adr/0003-react-three-fiber.md)); GSAP o drei para las animaciones de cámara.
-- **Primero desktop**, también funcional en móvil (unos 20k puntos de polvo en móvil).
+- **Primero desktop**, también funcional en móvil (unos 20k puntos decorativos en móvil).
 - Español, con los textos separados del código (listo para i18n).
 - Deploy en **Vercel**.
 
@@ -37,15 +37,15 @@ Se construyen los dos, sin límite de tiempo, con datos falsos de 975 goles y la
 
 Referencia: [vadimcarazan.com](https://vadimcarazan.com/).
 
-- **Retrato con nube híbrida** ([ADR 0001](./adr/0001-nube-hibrida-polvo-y-puntos-de-gol.md)): una cuadrícula densa de **polvo**, con los colores de la foto, dibuja la cara; los **1000 píxeles de gol** van repartidos dentro de ella en orden cronológico, de los pies a la cabeza. Con solo 1000 píxeles el retrato quedaría en unos 32×32 y a Cristiano no se le reconocería.
-- **Túnel**: cada píxel de gol tiene dos posiciones, la del retrato y la del túnel (`z = -número de gol × separación`, con X/Y al azar). Un único progreso (0→1) interpola entre las dos. Al hacer scroll solo los píxeles de gol vuelan al túnel; el polvo se desvanece.
+- **Retrato con nube híbrida** ([ADR 0001](./adr/0001-nube-hibrida-polvo-y-puntos-de-gol.md)): una cuadrícula densa de **píxeles de relleno**, cuadros de tamaño aleatorio con los colores de la foto, dibuja la cara, y en los bordes de la figura se dispersan para suavizar el contorno; los **1000 píxeles de gol** van repartidos dentro de ella en orden cronológico, de los pies a la cabeza. Con solo 1000 píxeles el retrato quedaría en unos 32×32 y a Cristiano no se le reconocería.
+- **Túnel**: cada píxel de gol tiene dos posiciones, la del retrato y la del túnel (`z = -número de gol × separación`, con X/Y al azar). Un único progreso (0→1) interpola entre las dos. Al hacer scroll solo los píxeles de gol vuelan al túnel; los píxeles de relleno se desvanecen.
 - **Scroll**: el scroll mueve la cámara en Z. El gol actual es el más cercano a la cámara (`round(z / separación)`).
 - **Indicador**: una capa HTML muestra el número del gol actual en grande, junto con fecha, equipo y rival, y un contador de progreso (por ejemplo, `16 de 1000 goles`).
 - **Goles faltantes**: van al final del túnel, en gris con el anillo pulsante.
 
 Orden de construcción:
 1. Base: Vite + React Three Fiber, JSON falso con 975 goles y muestreo de la foto placeholder.
-2. Retrato: polvo + píxeles de gol y la animación de armado al entrar.
+2. Retrato: píxeles de relleno + píxeles de gol y la animación de armado al entrar.
 3. Túnel: posiciones en Z, scroll → cámara e indicador HTML.
 4. Goles faltantes al final del túnel.
 
