@@ -1,5 +1,3 @@
-import { ASSEMBLY } from '../portrait/assemble.ts'
-
 // GPU side of the entry animation. Mirrors assemblyOffset in src/portrait/assemble.ts:
 // keep both in sync. Colors are written as sRGB on purpose (no color management), so the
 // fill pixels show the exact colors of the photo and the goals the exact palette.
@@ -11,6 +9,9 @@ export const assemblyVertexShader = /* glsl */ `
   attribute vec3 aColor;
 
   uniform float uTime;
+  // Seconds one point takes to fly in, and its opacity while still scattered.
+  uniform float uDuration;
+  uniform float uInitialOpacity;
   uniform float uSize;
   uniform float uViewportHeight;
 
@@ -18,7 +19,7 @@ export const assemblyVertexShader = /* glsl */ `
   varying float vAlpha;
 
   void main() {
-    float local = clamp((uTime - aDelay) / ${ASSEMBLY.duration.toFixed(3)}, 0.0, 1.0);
+    float local = clamp((uTime - aDelay) / max(uDuration, 0.0001), 0.0, 1.0);
     float offset = 1.0 - pow(1.0 - local, 3.0);
 
     vec4 viewPosition = modelViewMatrix * vec4(mix(aStart, position, offset), 1.0);
@@ -28,7 +29,7 @@ export const assemblyVertexShader = /* glsl */ `
 
     vColor = aColor;
     // Faint like a starfield while scattered, solid once in the portrait.
-    vAlpha = mix(0.35, 1.0, offset);
+    vAlpha = mix(uInitialOpacity, 1.0, offset);
   }
 `
 

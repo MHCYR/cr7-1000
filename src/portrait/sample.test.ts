@@ -117,3 +117,42 @@ describe('samplePortrait', () => {
     )
   })
 })
+
+describe('samplePortrait options', () => {
+  it('keeps the previous seed and edge band when they are not given', () => {
+    const base = samplePortrait(opaque, { fillCount: 8000 })
+
+    expect(EDGE_BAND).toBe(8)
+    expect(samplePortrait(opaque, { fillCount: 8000, seed: 1000, edgeBand: 8 })).toEqual(base)
+  })
+
+  it('spreads the goal pixels differently for another seed, repeatably', () => {
+    const base = samplePortrait(opaque, { fillCount: 8000 })
+    const other = samplePortrait(opaque, { fillCount: 8000, seed: 1001 })
+
+    expect(samplePortrait(opaque, { fillCount: 8000, seed: 1001 })).toEqual(other)
+    expect(other.goals.positions).not.toEqual(base.goals.positions)
+    expect(other.goals.count).toBe(base.goals.count)
+    expect(other.fill.count).toBe(base.fill.count)
+  })
+
+  it('narrows or widens the edge band without moving any pixel', () => {
+    const base = samplePortrait(opaque, { fillCount: 8000 })
+    const narrow = samplePortrait(opaque, { fillCount: 8000, edgeBand: 2 })
+    const wide = samplePortrait(opaque, { fillCount: 8000, edgeBand: 20 })
+    const onEdge = (edge: Float32Array) => edge.filter((value) => value > 0).length
+
+    expect(narrow.fill.positions).toEqual(base.fill.positions)
+    expect(wide.goals.positions).toEqual(base.goals.positions)
+    expect(onEdge(narrow.fill.edge)).toBeLessThan(onEdge(base.fill.edge))
+    expect(onEdge(base.fill.edge)).toBeLessThan(onEdge(wide.fill.edge))
+    expect(Math.max(...narrow.fill.edge)).toBe(1)
+    expect(Math.min(...narrow.fill.edge)).toBe(0)
+  })
+
+  it('has no edge at all when the band is zero wide', () => {
+    const { fill } = samplePortrait(opaque, { fillCount: 8000, edgeBand: 0 })
+
+    expect(fill.edge.every((value) => value === 0)).toBe(true)
+  })
+})

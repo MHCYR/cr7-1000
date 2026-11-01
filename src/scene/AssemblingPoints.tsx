@@ -1,6 +1,7 @@
 import { useFrame } from '@react-three/fiber'
-import { type RefObject, useMemo, useRef } from 'react'
+import { type RefObject, useRef, useState } from 'react'
 import type { ShaderMaterial } from 'three'
+import type { AnimationClock } from './animationClock.ts'
 import { assemblyFragmentShader, assemblyVertexShader } from './assemblyShader.ts'
 
 interface AssemblingPointsProps {
@@ -13,27 +14,42 @@ interface AssemblingPointsProps {
   colors: Float32Array
   /** Per-point side, as a multiple of `size`. */
   sizes: Float32Array
-  /** Shared animation clock, in seconds. */
-  clock: RefObject<number>
+  /** Shared animation clock. */
+  clock: RefObject<AnimationClock>
   /** Base point side, in world units. */
   size: number
   /** Dark outline width, as a share of the point side. */
   outline?: number
+  /** Seconds one point takes to fly in. */
+  duration: number
+  /** Opacity of a point while it is still scattered. */
+  initialOpacity: number
   renderOrder?: number
 }
 
 /** One THREE.Points (one draw call) whose points fly from `start` to `positions`. */
-export function AssemblingPoints({ positions, start, delays, colors, sizes, clock, size, outline = 0, renderOrder }: AssemblingPointsProps) {
+export function AssemblingPoints({ positions, start, delays, colors, sizes, clock, size, outline = 0, duration, initialOpacity, renderOrder }: AssemblingPointsProps) {
   const material = useRef<ShaderMaterial>(null)
-  const uniforms = useMemo(
-    () => ({ uTime: { value: 0 }, uViewportHeight: { value: 1 }, uSize: { value: size }, uOutline: { value: outline } }),
-    [size, outline],
-  )
+  // One object for the life of the component: the dev controls only change its values, so
+  // the material is never rebuilt or recompiled.
+  const [uniforms] = useState(() => ({
+    uTime: { value: 0 },
+    uDuration: { value: duration },
+    uInitialOpacity: { value: initialOpacity },
+    uViewportHeight: { value: 1 },
+    uSize: { value: size },
+    uOutline: { value: outline },
+  }))
 
   useFrame((state) => {
     if (!material.current) return
-    material.current.uniforms.uTime.value = clock.current
-    material.current.uniforms.uViewportHeight.value = state.size.height * state.viewport.dpr
+    const values = material.current.uniforms
+    values.uTime.value = clock.current.elapsed
+    values.uDuration.value = duration
+    values.uInitialOpacity.value = initialOpacity
+    values.uSize.value = size
+    values.uOutline.value = outline
+    values.uViewportHeight.value = state.size.height * state.viewport.dpr
   })
 
   return (

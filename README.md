@@ -22,6 +22,22 @@ pnpm test      # tests con Vitest
 pnpm preview   # sirve el build de dist/
 ```
 
+## Ajustar el retrato en desarrollo
+
+Con `pnpm dev` aparece un panel Leva con tres grupos: **Animación**, **Píxeles de relleno y bordes** y **Encuadre y semillas**. Los valores iniciales salen de `PORTRAIT_DEFAULTS` en `src/portrait/settings.ts`; el panel no guarda configuraciones y una recarga completa restaura esos valores.
+
+| Cambio | Trabajo que realiza |
+|---|---|
+| Duración, opacidad inicial y ocupación del viewport | Actualiza uniforms o escala, sin regenerar puntos |
+| Escalonados, arranque de goles, dispersión inicial, tamaños, dispersión y encogimiento del borde | Recalcula buffers sin leer otra vez la foto |
+| Densidad, franja de borde y semilla general | Ejecuta `samplePortrait` con los píxeles de la foto ya decodificada; la semilla también cambia los buffers aleatorios |
+
+**Reiniciar animación** reproduce el armado desde t = 0, sin recargar la foto ni el contexto WebGL. Si está activada la preferencia de movimiento reducido del sistema, el retrato permanece armado. Para apreciar cambios en el vuelo o la opacidad inicial después del armado, pulsa este botón.
+
+**Copiar valores** copia una declaración TypeScript completa. Sustituye únicamente la declaración `export const PORTRAIT_DEFAULTS: PortraitSettings = { ... }` en `src/portrait/settings.ts` por el texto copiado para adoptar el mismo retrato como configuración del código. Se incluyen todos los parámetros y la semilla. El panel confirma la copia o avisa si el navegador deniega el portapapeles; usa localhost o HTTPS.
+
+Leva es una dependencia de desarrollo y se importa dinámicamente solo bajo `import.meta.env.DEV`. `pnpm build` y `pnpm preview` no incluyen ni muestran el panel. Los tamaños, bordes y colores de los píxeles de gol, el umbral de transparencia y la ruta de la foto no se exponen.
+
 ## Datos de goles
 
 Los goles oficiales están en `src/data/goles.json`, un gol por línea con `numero`, `fecha` (`YYYY-MM-DD`), `equipo` y `rival`. Se validan al cargar la página y en `pnpm test`: los números van seguidos desde 1, sin repetirse, y las fechas nunca retroceden.
