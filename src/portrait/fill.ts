@@ -6,7 +6,7 @@ import { createRandom } from '../lib/random.ts'
 // Goal pixels are not touched by any of this.
 
 /** Side of a fill pixel, relative to a grid cell: each pixel gets a random one in this range. */
-export const FILL_SIZE = { min: 0.5, max: 1.2 } as const
+export const FILL_SIZE = { min: 1.2, max: 3.6 } as const
 
 /** Farthest an edge pixel scatters from its cell, in grid cells. */
 export const EDGE_DISPERSION = 3
