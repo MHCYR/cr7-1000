@@ -20,6 +20,10 @@ _Avoid_: club, team
 Equipo contra el que se marcó el gol.
 _Avoid_: oponente, contrario
 
+**Escudo**:
+Imagen que identifica a un equipo o rival; en las selecciones, el escudo de su federación, no la bandera.
+_Avoid_: logo, crest
+
 **Meta**:
 El gol oficial número 1000.
 _Avoid_: objetivo, hito

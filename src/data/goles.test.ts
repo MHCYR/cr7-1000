@@ -1,37 +1,39 @@
 import { describe, expect, it } from 'vitest'
-import { CAREER_TEAMS, generateFakeGoles } from './fake-goles.ts'
-import { validateGoles } from './gol.ts'
-import { goles } from './goles.ts'
+import { clubes, goles } from './goles.ts'
+
+const PORTUGAL_ID = '3300'
+// Files in public/ are served from the site root: public/escudos/336.webp is /escudos/336.webp.
+const crestFiles = new Set(
+  Object.keys(import.meta.glob('/public/escudos/*.webp')).map((path) => path.replace(/^\/public/, '')),
+)
 
 describe('goles', () => {
-  it('loads the 975 fake goals and they pass validation', () => {
-    expect(goles).toHaveLength(975)
-    expect(() => validateGoles(goles)).not.toThrow()
+  it('loads the real goals and they pass validation', () => {
+    // Real data grows over time; 978 is the count when it was first generated.
+    expect(goles.length).toBeGreaterThanOrEqual(978)
   })
 
-  it('matches what `pnpm data:fake` regenerates', () => {
-    expect(generateFakeGoles()).toEqual(goles)
+  it('starts with the first goal for Sporting CP', () => {
+    expect(goles[0]).toMatchObject({ numero: 1, fecha: '2002-10-07' })
+    expect(clubes[goles[0].equipoId].nombre).toBe('Sporting CP')
+  })
+
+  it('only scores for the five career clubs and, among national teams, senior Portugal', () => {
+    const nationalIds = new Set(goles.map((goal) => goal.equipoId).filter((id) => id !== PORTUGAL_ID))
+    expect([...nationalIds].map((id) => clubes[id].nombre).sort()).toEqual(
+      ['Al-Nassr FC', 'Juventus FC', 'Manchester United', 'Real Madrid', 'Sporting CP'].sort(),
+    )
   })
 })
 
-describe('generateFakeGoles', () => {
-  it('is reproducible for the same seed and changes with another seed', () => {
-    expect(generateFakeGoles(50, 1)).toEqual(generateFakeGoles(50, 1))
-    expect(generateFakeGoles(50, 2)).not.toEqual(generateFakeGoles(50, 1))
+describe('clubes', () => {
+  it('lists exactly the clubs used by the goals', () => {
+    const used = new Set(goles.flatMap((goal) => [goal.equipoId, goal.rivalId]))
+    expect(new Set(Object.keys(clubes))).toEqual(used)
   })
 
-  it('only uses teams from the career and never scores against itself', () => {
-    for (const goal of generateFakeGoles()) {
-      expect(CAREER_TEAMS).toContain(goal.equipo)
-      expect(goal.rival).not.toBe(goal.equipo)
-    }
-  })
-
-  it('assigns each club goal to the club Cristiano played for on that date', () => {
-    const atJuventus = generateFakeGoles().filter((goal) => goal.equipo === 'Juventus')
-    expect(atJuventus.length).toBeGreaterThan(0)
-    for (const goal of atJuventus) {
-      expect(goal.fecha >= '2018-08-18' && goal.fecha <= '2021-05-23').toBe(true)
-    }
+  it('has every crest it points to in public/', () => {
+    const crests = Object.values(clubes).flatMap((club) => (club.escudo === null ? [] : [club.escudo]))
+    expect(crests.filter((crest) => !crestFiles.has(crest))).toEqual([])
   })
 })

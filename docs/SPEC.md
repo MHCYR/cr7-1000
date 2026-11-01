@@ -6,8 +6,8 @@ Vocabulario en [GLOSSARY.md](../GLOSSARY.md). Decisiones con contexto en [docs/a
 
 ### Contenido
 - Cuenta solo el **gol oficial**: club + Portugal, sin amistosos de club. Hoy son ~975 (julio de 2026).
-- Datos por gol: **número de gol, fecha, equipo, rival**. Nada más.
-- Datos en un **JSON estático** dentro del repo ([ADR 0002](./adr/0002-datos-en-json-estatico.md)). Club: dataset de Kaggle/Hugging Face. Portugal: compilado aparte. Los goles nuevos se agregan editando el JSON a mano y haciendo push.
+- Datos por gol: **número de gol, fecha, equipo, rival**. Equipo y rival son ids de una lista de clubes con nombre y escudo.
+- Datos en un **JSON estático** dentro del repo ([ADR 0002](./adr/0002-datos-en-json-estatico.md)), generado desde la API JSON de Transfermarkt con `pnpm data:real`, que también descarga los escudos. Los goles nuevos se incorporan ejecutando el script otra vez y haciendo push.
 - La página contempla desde el inicio el estado **post-1000**: todos los puntos encendidos, celebración y goles extra fuera de la figura.
 
 ### Visual

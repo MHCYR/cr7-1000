@@ -11,7 +11,7 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "test": "vitest run",
-    "data:fake": "node scripts/generate-fake-goles.ts",
+    "data:real": "node scripts/fetch-goles.ts",
     "preview": "vite preview"
   },
   "dependencies": {
