@@ -1,5 +1,5 @@
 // GPU side of the entry animation and the tunnel. Mirrors assemblyOffset in
-// src/portrait/assemble.ts, and fillOffset, nearFade and tunnelFade in src/tunnel/tunnel.ts: keep them in
+// src/portrait/assemble.ts, and fillOffset, nearFade and tunnelFade in src/tunnel/tunnel.ts, and the card hand-off in src/hud/cardLayout.ts: keep them in
 // sync. With TUNNEL defined (goal pixels), uProgress flies each point from the portrait to
 // aTunnel, in world units (src/tunnel/tunnel.ts); without it (fill pixels), uProgress brings
 // the whole image toward the camera and then each point past it in aOrder, fading it out as it
@@ -31,6 +31,8 @@ export const assemblyVertexShader = /* glsl */ `
   uniform float uFogFar;
   // Goal pixel size in the tunnel, as a multiple of its size in the portrait.
   uniform float uTunnelScale;
+  // Progress over which the goal cards take over from the goal pixels (CARD_REVEAL).
+  uniform vec2 uHandOff;
   #else
   // FILL_ZOOM: timings as shares of uProgress, lengths in world units.
   uniform float uZoomEnd;
@@ -68,6 +70,8 @@ export const assemblyVertexShader = /* glsl */ `
     vAlpha = mix(uInitialOpacity, 1.0, offset);
     #ifdef TUNNEL
     vAlpha *= 1.0 - smoothstep(uFogNear, uFogFar, depth);
+    // In the tunnel each goal is a card, drawn over the canvas (src/hud/GoalCards.tsx).
+    vAlpha *= 1.0 - smoothstep(uHandOff.x, uHandOff.y, uProgress);
     gl_PointSize *= mix(1.0, uTunnelScale, smoothstep(0.0, 1.0, uProgress));
     #else
     vAlpha *= smoothstep(0.0, uFade, depth);

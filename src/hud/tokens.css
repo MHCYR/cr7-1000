@@ -1,0 +1,48 @@
+/* CR7 · 1000 HUD design tokens (DESIGN.md). One theme, dark on purpose: the tunnel is black. */
+:root {
+  /* Colors */
+  --wall: #0a0a0a;
+  --chalk: #ffffff;
+  --chalk-muted: #c9c9c4;
+  --ink: #0b0b0a;
+  --spray: #ff5b1f;
+  --spray-deep: #7a2608;
+  --metro: #2f6bff;
+  --concrete: #8c8c86;
+  --concrete-deep: #3a3a37;
+  --focus: #ffffff;
+
+  /* Glass: the container only */
+  --glass-fill: rgba(12, 12, 11, 0.6);
+  --glass-border: rgba(255, 255, 255, 0.16);
+  --glass-highlight: rgba(255, 255, 255, 0.07);
+  --glass-blur: blur(20px) saturate(140%);
+  --glass-blur-m: blur(14px) saturate(140%);
+  --border-glass: 1px;
+  --radius-glass: 22px;
+  --radius-glass-m: 18px;
+  --shadow-glass: inset 0 1px 0 0 var(--glass-highlight), 0 24px 48px -24px rgba(0, 0, 0, 0.6);
+
+  /* Urban neo-brutalism: the content */
+  --border-brutal: 3px;
+  --radius-brutal: 0;
+  --shadow-hard-metro: 4px 4px 0 0 var(--metro);
+  --shadow-hard-spray: 4px 4px 0 0 var(--spray);
+  --shadow-hard-concrete: 3px 3px 0 0 var(--concrete-deep);
+  --sticker-tilt: -3deg;
+  --ring-pulse: 1.6s;
+
+  /* Type families */
+  --font-display: Bungee, Impact, 'Arial Black', sans-serif;
+  --font-display-outline: 'Bungee Outline', Bungee, Impact, sans-serif;
+  --font-tag: 'Sedgwick Ave Display', 'Permanent Marker', 'Comic Sans MS', cursive;
+  --font-sans: Rubik, 'Helvetica Neue', Arial, sans-serif;
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+}

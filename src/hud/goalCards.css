@@ -1,0 +1,330 @@
+/* GoalCard (DESIGN.md): the container is glass, the content is wall. */
+
+/* ---- Container: glass. The only translucent, blurred, rounded thing. ---- */
+.hud-glass {
+  background: var(--glass-fill);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border: var(--border-glass) solid var(--glass-border);
+  border-radius: var(--radius-glass);
+  box-shadow: var(--shadow-glass);
+}
+
+@media (max-width: 639px) {
+  .hud-glass {
+    -webkit-backdrop-filter: var(--glass-blur-m);
+    backdrop-filter: var(--glass-blur-m);
+    border-radius: var(--radius-glass-m);
+  }
+}
+
+/* ---- The layer over the canvas; the scene moves each slot onto its goal every frame ---- */
+.goal-cards {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.goal-slot {
+  position: absolute;
+  top: 0;
+  left: 0;
+  visibility: hidden;
+  transform-origin: 0 0;
+  will-change: transform, opacity;
+  pointer-events: auto;
+}
+
+/* Opening a card lifts it over its neighbours without moving them. */
+.goal-slot--open {
+  z-index: 10000 !important;
+}
+
+/* ---- The card ---- */
+.goal-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  width: 160px;
+  padding: 14px var(--space-4) var(--space-4);
+  overflow: hidden;
+  color: var(--chalk);
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: width 0.18s ease-out;
+}
+
+.goal-card--open {
+  width: 272px;
+}
+
+.goal-card:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.goal-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+/* The number: a block-letter throw-up, chalk face with a hard ink and metro extrusion. */
+.goal-card__number {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 44px;
+  line-height: 0.9;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  color: var(--chalk);
+  text-shadow: 2px 2px 0 var(--ink), 4px 4px 0 var(--metro);
+}
+
+/* Missing: outline only, a sketch not painted yet. */
+.goal-card--missing .goal-card__number {
+  font-family: var(--font-display-outline);
+  color: var(--concrete);
+  text-shadow: none;
+}
+
+/* Resting state mark: a spray square for a scored goal. */
+.goal-card__mark {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  background: var(--spray);
+  border: var(--border-brutal) solid var(--ink);
+  border-radius: var(--radius-brutal);
+  box-shadow: 2px 2px 0 0 var(--metro);
+}
+
+/* Pulsing ring: the resting mark of a missing goal, and the dot in its sticker. */
+.goal-card__ring {
+  position: relative;
+  flex: none;
+  width: 12px;
+  height: 12px;
+  margin: 2px;
+  border: 2px solid var(--concrete);
+  border-radius: 50%;
+}
+
+.goal-card__ring::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border: 2px solid var(--concrete);
+  border-radius: 50%;
+  animation: goal-card-ring var(--ring-pulse) ease-out infinite;
+}
+
+.goal-card__sticker .goal-card__ring {
+  width: 10px;
+  height: 10px;
+  margin: 0;
+}
+
+@keyframes goal-card-ring {
+  from {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  to {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+
+/* Stickers: flat, square, hard-edged, slapped on slightly crooked. */
+.goal-card__sticker {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 2px var(--space-2) 3px;
+  border: var(--border-brutal) solid var(--ink);
+  border-radius: var(--radius-brutal);
+  transform: rotate(var(--sticker-tilt));
+  font-family: var(--font-tag);
+  font-size: 17px;
+  line-height: 20px;
+  color: var(--ink);
+  background: var(--spray);
+  box-shadow: 3px 3px 0 0 var(--metro);
+}
+
+.goal-card--missing .goal-card__sticker {
+  color: var(--chalk);
+  background: var(--wall);
+  border: var(--border-brutal) dashed var(--concrete);
+  box-shadow: 3px 3px 0 0 var(--concrete-deep);
+}
+
+/* New content drops in 6px. */
+.goal-card__reveal {
+  animation: goal-card-reveal 0.18s ease-out;
+}
+
+@keyframes goal-card-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.goal-card__sticker.goal-card__reveal {
+  animation-name: goal-card-sticker-reveal;
+}
+
+@keyframes goal-card-sticker-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) rotate(var(--sticker-tilt));
+  }
+  to {
+    opacity: 1;
+    transform: rotate(var(--sticker-tilt));
+  }
+}
+
+.goal-card__details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* ---- Crests ---- */
+.goal-card__teams {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.goal-card--missing .goal-card__teams {
+  align-items: center;
+  padding: 0 var(--space-3);
+}
+
+.goal-card__team {
+  margin: 0;
+  width: 88px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.goal-card__crest {
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--chalk);
+  border: var(--border-brutal) solid var(--ink);
+  border-radius: var(--radius-brutal);
+  font-family: var(--font-display);
+  font-size: 20px;
+  color: var(--ink);
+}
+
+.goal-card__crest--own {
+  box-shadow: var(--shadow-hard-spray);
+}
+
+.goal-card__crest--rival {
+  box-shadow: var(--shadow-hard-metro);
+}
+
+.goal-card__crest img {
+  width: 100%;
+  height: 100%;
+  padding: var(--space-2);
+  object-fit: contain;
+}
+
+.goal-card__crest--empty {
+  background: var(--wall);
+  border: var(--border-brutal) dashed var(--concrete);
+  font-size: 26px;
+  color: var(--concrete);
+}
+
+.goal-card__versus {
+  align-self: center;
+  margin-top: -24px;
+  font-family: var(--font-tag);
+  font-size: 24px;
+  line-height: 24px;
+  color: var(--chalk);
+}
+
+.goal-card--missing .goal-card__versus {
+  margin-top: 0;
+  color: var(--concrete);
+}
+
+.goal-card__label {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--chalk-muted);
+  text-align: center;
+}
+
+/* ---- Date, or how many goals are left ---- */
+.goal-card__date {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin: 0;
+  padding-top: var(--space-3);
+  border-top: var(--border-brutal) solid var(--chalk);
+}
+
+.goal-card__date dd {
+  margin: 0;
+  font-size: 17px;
+  line-height: 22px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--chalk);
+}
+
+.goal-card__remaining {
+  margin: 0;
+  padding-top: var(--space-3);
+  border-top: var(--border-brutal) dashed var(--concrete);
+  font-size: 15px;
+  line-height: 21px;
+  font-weight: 600;
+  color: var(--chalk-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .goal-card {
+    transition: none;
+  }
+
+  .goal-card__reveal,
+  .goal-card__sticker.goal-card__reveal {
+    animation: none;
+  }
+
+  /* The ring stays still. */
+  .goal-card__ring::after {
+    animation: none;
+    opacity: 0;
+  }
+}

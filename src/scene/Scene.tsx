@@ -1,7 +1,8 @@
 import { useFrame, useThree } from '@react-three/fiber'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { type RefObject, useEffect, useMemo, useRef, useState } from 'react'
 import { MathUtils } from 'three'
 import { goles } from '../data/goles.ts'
+import { CARD_REVEAL, layoutCards } from '../hud/cardLayout.ts'
 import { assemblyEnd } from '../portrait/assemble.ts'
 import { PORTRAIT_URL, loadImagePixels } from '../portrait/load.ts'
 import { goalColors } from '../portrait/palette.ts'
@@ -29,6 +30,8 @@ interface SceneProps {
   settings?: PortraitSettings
   /** Changing it plays the entry animation again from the start, without rebuilding anything. */
   restart?: number
+  /** Goal card slots, index i for goal i + 1: the scene moves them onto their goals every frame. */
+  cards?: RefObject<(HTMLElement | null)[]>
 }
 
 /**
@@ -39,7 +42,7 @@ interface SceneProps {
  * for the sampling settings and the seed, and its buffers are rebuilt only for the settings
  * that shape them. Duration, initial opacity, fit and the zoom timing just update the shader and the scale.
  */
-export function Scene({ settings = DEFAULT_SETTINGS, restart = 0 }: SceneProps) {
+export function Scene({ settings = DEFAULT_SETTINGS, restart = 0, cards }: SceneProps) {
   const [image, setImage] = useState<ImageData | null>(null)
   const { fillCount, edgeBand, seed } = samplingOptions(settings)
 
@@ -68,10 +71,10 @@ export function Scene({ settings = DEFAULT_SETTINGS, restart = 0 }: SceneProps) 
   if (sampled && sampled !== shown) setShown(sampled)
   const portrait = sampled ?? shown
 
-  return portrait && <PortraitCloud portrait={portrait} settings={settings} restart={restart} />
+  return portrait && <PortraitCloud portrait={portrait} settings={settings} restart={restart} cards={cards} />
 }
 
-function PortraitCloud({ portrait, settings, restart }: { portrait: Portrait; settings: PortraitSettings; restart: number }) {
+function PortraitCloud({ portrait, settings, restart, cards }: { portrait: Portrait; settings: PortraitSettings; restart: number; cards?: RefObject<(HTMLElement | null)[]> }) {
   const viewport = useThree((state) => state.viewport)
   const { fit, assembly, initialOpacity } = settings
   const scale = Math.min(viewport.height * fit.height, (viewport.width * fit.width) / portrait.aspect)
@@ -128,6 +131,18 @@ function PortraitCloud({ portrait, settings, restart }: { portrait: Portrait; se
       current.cameraZ = MathUtils.damp(current.cameraZ, target.cameraZ, SCROLL_DAMPING, delta)
     }
     state.camera.position.z = current.cameraZ
+
+    if (cards) {
+      const { width, height } = state.size
+      layoutCards(cards.current, tunnel, {
+        cameraZ: current.cameraZ,
+        focal: (state.camera.projectionMatrix.elements[5] * height) / 2,
+        width,
+        height,
+        progress: current.progress,
+        fog: { near: fogNear, far: fogFar },
+      })
+    }
   })
 
   return (
@@ -157,6 +172,7 @@ function PortraitCloud({ portrait, settings, restart }: { portrait: Portrait; se
         tunnel={tunnel}
         fog={{ near: fogNear, far: fogFar }}
         tunnelScale={goalScale}
+        handOff={cards ? CARD_REVEAL : undefined}
         size={portrait.cellSize * scale * GOAL_SIZE}
         outline={GOAL_OUTLINE}
         duration={assembly.duration}
