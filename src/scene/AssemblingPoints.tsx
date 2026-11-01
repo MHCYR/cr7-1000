@@ -1,9 +1,12 @@
 import { useFrame } from '@react-three/fiber'
 import { type RefObject, useRef, useState } from 'react'
-import type { Points, ShaderMaterial } from 'three'
+import { type Points, type ShaderMaterial, Vector2 } from 'three'
 import { type FillZoom, type ScrollState, type TunnelFog, TUNNEL_FOG, fillOffset } from '../tunnel/tunnel.ts'
 import type { AnimationClock } from './animationClock.ts'
 import { assemblyFragmentShader, assemblyVertexShader } from './assemblyShader.ts'
+
+/** Past the end of the scroll: the points never hand off. */
+const NO_HAND_OFF = { start: 2, end: 3 } as const
 
 interface AssemblingPointsProps {
   /** Final xyz positions in the portrait. */
@@ -25,6 +28,8 @@ interface AssemblingPointsProps {
   fog?: TunnelFog
   /** Point size in the tunnel, as a multiple of its size in the portrait. */
   tunnelScale?: number
+  /** Progress over which the points fade out in the tunnel, replaced by the goal cards; never, by default. */
+  handOff?: { start: number; end: number }
   /** How the points come toward the camera when there is no tunnel. */
   zoom?: FillZoom
   /** Fly-out order of each point toward the camera, in [0, 1]; needed with `zoom`. */
@@ -44,7 +49,7 @@ interface AssemblingPointsProps {
  * One THREE.Points (one draw call) whose points fly from `start` to `positions`, and on scroll
  * either to `tunnel` or toward the camera and past it.
  */
-export function AssemblingPoints({ positions, start, delays, colors, sizes, clock, scroll, tunnel, fog = TUNNEL_FOG, tunnelScale = 1, zoom, order, size, outline = 0, duration, initialOpacity, renderOrder }: AssemblingPointsProps) {
+export function AssemblingPoints({ positions, start, delays, colors, sizes, clock, scroll, tunnel, fog = TUNNEL_FOG, tunnelScale = 1, handOff = NO_HAND_OFF, zoom, order, size, outline = 0, duration, initialOpacity, renderOrder }: AssemblingPointsProps) {
   const points = useRef<Points>(null)
   const material = useRef<ShaderMaterial>(null)
   // One object for the life of the component: the dev controls only change its values, so
@@ -66,6 +71,7 @@ export function AssemblingPoints({ positions, start, delays, colors, sizes, cloc
     uFogNear: { value: fog.near },
     uFogFar: { value: fog.far },
     uTunnelScale: { value: tunnelScale },
+    uHandOff: { value: new Vector2(handOff.start, handOff.end) },
   }))
   // Fixed per mount: a tunnel is either given or not, so the shader compiles once.
   const [defines] = useState(() => (tunnel ? { TUNNEL: '' } : {}))
@@ -84,6 +90,7 @@ export function AssemblingPoints({ positions, start, delays, colors, sizes, cloc
       values.uFogNear.value = fog.near
       values.uFogFar.value = fog.far
       values.uTunnelScale.value = tunnelScale
+      values.uHandOff.value.set(handOff.start, handOff.end)
       return
     }
     if (!zoom) return

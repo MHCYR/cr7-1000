@@ -86,7 +86,7 @@ export function scrollHeight(viewportHeight: number, goalCount: number, tunnel =
 }
 
 /** Hermite smoothstep, as in GLSL: 0 at or below `edge0`, 1 at or above `edge1`. */
-function smoothstep(edge0: number, edge1: number, x: number): number {
+export function smoothstep(edge0: number, edge1: number, x: number): number {
   const t = Math.min(Math.max((x - edge0) / (edge1 - edge0), 0), 1)
   return t * t * (3 - 2 * t)
 }

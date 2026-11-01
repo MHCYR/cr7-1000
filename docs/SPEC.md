@@ -13,7 +13,7 @@ Vocabulario en [GLOSSARY.md](../GLOSSARY.md). Decisiones con contexto en [docs/a
 ### Visual
 - **Nube híbrida**: puntos decorativos (polvo en el prototipo A, píxeles de relleno en el B) + 1000 puntos de gol ([ADR 0001](./adr/0001-nube-hibrida-polvo-y-puntos-de-gol.md)).
 - Forma: **foto + mapa de profundidad** generado con IA (Depth Anything V2). En el prototipo B el retrato es 2D y no necesita mapa de profundidad. Al principio se usa una foto **placeholder solo local**; antes de publicar se elige una con licencia o un arte propio.
-- Paleta: los puntos decorativos toman los **colores de la foto**; los goles marcados van en **dorado**; los goles faltantes, en **gris con un anillo pulsante**.
+- Paleta: los puntos decorativos toman los **colores de la foto**; los goles marcados van en **naranja spray**; los goles faltantes, en **gris cemento con un anillo pulsante**.
 - Orden de los puntos de gol: **cronológico**, de los pies a la cabeza (o el orden del túnel en el prototipo B).
 - Clic en un gol: **la cámara vuela hasta él y se abre una ficha** con los 4 datos.
 - Interfaz extra: **línea de tiempo** (en el prototipo B es el propio scroll).
