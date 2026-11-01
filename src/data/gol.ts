@@ -14,7 +14,7 @@ export interface Gol {
 export interface Club {
   /** Name as Transfermarkt publishes it. */
   nombre: string
-  /** Path of the crest served from public/, `/escudos/<id>.png`, or null when there is none. */
+  /** Path of the crest served from public/, `/escudos/<id>.webp`, or null when there is none. */
   escudo: string | null
 }
 
@@ -37,11 +37,11 @@ function isPresent(value: unknown): boolean {
 }
 
 /** Crest path a club with this id must use. */
-export const escudoPath = (id: string) => `/escudos/${id}.png`
+export const escudoPath = (id: string) => `/escudos/${id}.webp`
 
 /**
  * Checks the club list and returns it typed: an object keyed by club id, every club
- * with a name and a crest at its own `/escudos/<id>.png` or null.
+ * with a name and a crest at its own `/escudos/<id>.webp` or null.
  * Throws an Error describing the first problem found.
  */
 export function validateClubes(data: unknown): Clubes {

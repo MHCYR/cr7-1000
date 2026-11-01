@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { clubesFrom, clubIdsOf, golesFromPerformance, type PerformanceEntry } from './transfermarkt.ts'
+import {
+  clubesFrom,
+  clubIdsOf,
+  duplicateCrests,
+  golesFromPerformance,
+  type PerformanceEntry,
+} from './transfermarkt.ts'
 
 interface Match {
   date: string
@@ -76,8 +82,30 @@ describe('clubesFrom', () => {
       { id: '336', name: 'Sporting CP' },
     ]
     expect(clubesFrom(clubs, new Set(['336']))).toEqual({
-      '336': { nombre: 'Sporting CP', escudo: '/escudos/336.png' },
+      '336': { nombre: 'Sporting CP', escudo: '/escudos/336.webp' },
       '985': { nombre: 'Manchester United', escudo: null },
     })
+  })
+})
+
+describe('duplicateCrests', () => {
+  const bytes = (...values: number[]) => new Uint8Array(values)
+
+  it('finds nothing when every crest is different', () => {
+    expect(duplicateCrests([{ id: '336', bytes: bytes(1, 2) }, { id: '418', bytes: bytes(1, 3) }])).toEqual([])
+  })
+
+  it('groups the ids that share a byte-identical crest, sorted by id', () => {
+    const crests = [
+      { id: '985', bytes: bytes(7) },
+      { id: '418', bytes: bytes(9) },
+      { id: '336', bytes: bytes(7) },
+      { id: '3300', bytes: bytes(9) },
+      { id: '506', bytes: bytes(5) },
+    ]
+    expect(duplicateCrests(crests)).toEqual([
+      ['336', '985'],
+      ['418', '3300'],
+    ])
   })
 })

@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { clubes, goles } from './goles.ts'
 
 const PORTUGAL_ID = '3300'
-// Files in public/ are served from the site root: public/escudos/336.png is /escudos/336.png.
+// Files in public/ are served from the site root: public/escudos/336.webp is /escudos/336.webp.
 const crestFiles = new Set(
-  Object.keys(import.meta.glob('/public/escudos/*.png')).map((path) => path.replace(/^\/public/, '')),
+  Object.keys(import.meta.glob('/public/escudos/*.webp')).map((path) => path.replace(/^\/public/, '')),
 )
 
 describe('goles', () => {

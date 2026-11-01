@@ -46,7 +46,7 @@ En el túnel, el gol número n está en `z = -n × separación`, con X/Y al azar
 
 ## Datos de goles
 
-Los goles oficiales están en `src/data/goles.json`, un gol por línea con `numero`, `fecha` (`YYYY-MM-DD`), `equipoId` y `rivalId`. Los ids son los de Transfermarkt y apuntan a `src/data/clubes.json`, que guarda para cada club o selección su `nombre` y su `escudo` (`/escudos/<id>.png`, servido desde `public/escudos/`, o `null` si no tiene). Se validan al cargar la página y en `pnpm test`: los números van seguidos desde 1, sin repetirse, las fechas nunca retroceden y cada id existe en la lista de clubes.
+Los goles oficiales están en `src/data/goles.json`, un gol por línea con `numero`, `fecha` (`YYYY-MM-DD`), `equipoId` y `rivalId`. Los ids son los de Transfermarkt y apuntan a `src/data/clubes.json`, que guarda para cada club o selección su `nombre` y su `escudo` (`/escudos/<id>.webp`, servido desde `public/escudos/`, o `null` si no tiene). Se validan al cargar la página y en `pnpm test`: los números van seguidos desde 1, sin repetirse, las fechas nunca retroceden y cada id existe en la lista de clubes.
 
 Los datos salen de la API JSON de Transfermarkt ([ADR 0002](docs/adr/0002-datos-en-json-estatico.md)). Para actualizarlos, por ejemplo después de un gol nuevo:
 
@@ -54,7 +54,7 @@ Los datos salen de la API JSON de Transfermarkt ([ADR 0002](docs/adr/0002-datos-
 pnpm data:real # reescribe goles.json y clubes.json, y descarga los escudos que falten
 ```
 
-El script necesita red y solo escribe si los datos nuevos pasan la validación. Los escudos ya descargados no se vuelven a pedir. Para renovar uno, borra su archivo de `public/escudos/` y ejecuta el script otra vez. Los nombres llegan en inglés, tal como los publica Transfermarkt. La fecha de cada gol es la fecha UTC del inicio del partido.
+El script necesita red e ImageMagick 7 (`magick` en el PATH) y solo escribe los JSON si los datos nuevos pasan la validación. Convierte cada escudo nuevo a WebP con calidad 90 y falla si dos clubes comparten un escudo idéntico byte a byte. Los escudos WebP ya descargados no se vuelven a pedir. Para renovar uno, borra su archivo de `public/escudos/` y ejecuta el script otra vez. Los nombres llegan en inglés, tal como los publica Transfermarkt. La fecha de cada gol es la fecha UTC del inicio del partido.
 
 ## Foto placeholder
 

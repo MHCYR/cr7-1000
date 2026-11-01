@@ -2,7 +2,7 @@
 
 No existe una API pública y gratuita con el detalle de los ~975 goles oficiales; las de pago solo cubren temporadas recientes y obligarían a tener un backend para esconder la key. Por eso el sitio es 100 % estático: los goles viven en un JSON dentro del repo y la página nunca llama a una API.
 
-Ese JSON lo genera un script local (`pnpm data:real`) a partir de la API JSON interna de Transfermarkt (`tmapi.transfermarkt.technology`), la misma que usa su web y que [transfermarkt-api](https://github.com/diegogalocha/transfermarkt-api-v4) envuelve. Una sola petición devuelve todos los partidos de Cristiano con sus goles, club y rival; otra, por lotes, los nombres de los clubes. El script descarga también los escudos a `public/escudos/`, para no depender del CDN de Transfermarkt. Los goles nuevos se incorporan ejecutando el script otra vez, no editando el JSON a mano.
+Ese JSON lo genera un script local (`pnpm data:real`) a partir de la API JSON interna de Transfermarkt (`tmapi.transfermarkt.technology`), la misma que usa su web y que [transfermarkt-api](https://github.com/diegogalocha/transfermarkt-api-v4) envuelve. Una sola petición devuelve todos los partidos de Cristiano con sus goles, club y rival; otra, por lotes, los nombres de los clubes. El script descarga también los escudos y los convierte con ImageMagick a WebP (calidad 90) en `public/escudos/`, para no depender del CDN de Transfermarkt. Rechaza escudos idénticos byte a byte entre clubes antes de escribir los JSON. Los goles nuevos se incorporan ejecutando el script otra vez, no editando el JSON a mano.
 
 Cada gol guarda solo: número de gol, fecha, id del equipo e id del rival. Nombre y escudo de cada club están en una lista aparte (`clubes.json`), para no repetirlos en cientos de goles.
 

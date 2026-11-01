@@ -1,5 +1,6 @@
 // Pure transforms from Transfermarkt's JSON API (tmapi.transfermarkt.technology) to the goal
 // and club data in src/data/. The network side lives in scripts/fetch-goles.ts.
+import { createHash } from 'node:crypto'
 import { escudoPath, type Clubes, type Gol } from '../src/data/gol.ts'
 
 export const CRISTIANO_ID = '8198'
@@ -54,6 +55,21 @@ export function golesFromPerformance(entries: readonly PerformanceEntry[]): Gol[
 }
 
 const byNumericId = (a: string, b: string) => Number(a) - Number(b) || a.localeCompare(b)
+
+/** Groups club ids whose crests are byte-identical, ordered numerically. */
+export function duplicateCrests(crests: readonly { id: string; bytes: Uint8Array }[]): string[][] {
+  const groups = new Map<string, string[]>()
+  for (const { id, bytes } of crests) {
+    const hash = createHash('sha256').update(bytes).digest('hex')
+    const group = groups.get(hash)
+    if (group) group.push(id)
+    else groups.set(hash, [id])
+  }
+  return [...groups.values()]
+    .filter((group) => group.length >= 2)
+    .map((group) => group.sort(byNumericId))
+    .sort((a, b) => byNumericId(a[0]!, b[0]!))
+}
 
 /** Every club that appears in the goals, as team or opponent, once and sorted by id. */
 export function clubIdsOf(goles: readonly Gol[]): string[] {

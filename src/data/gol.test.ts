@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { validateClubes, validateGoles } from './gol.ts'
 
 const clubes = {
-  '336': { nombre: 'Sporting CP', escudo: '/escudos/336.png' },
-  '979': { nombre: 'Moreirense FC', escudo: '/escudos/979.png' },
-  '985': { nombre: 'Manchester United', escudo: '/escudos/985.png' },
+  '336': { nombre: 'Sporting CP', escudo: '/escudos/336.webp' },
+  '979': { nombre: 'Moreirense FC', escudo: '/escudos/979.webp' },
+  '985': { nombre: 'Manchester United', escudo: '/escudos/985.webp' },
   '355': { nombre: 'Bolton Wanderers', escudo: null },
 }
 
@@ -104,12 +104,12 @@ describe('validateClubes', () => {
     expect(() => validateClubes({ '336': { escudo: null } })).toThrow('Club 336 is missing "nombre"')
   })
 
-  it('rejects a crest outside /escudos/<id>.png', () => {
-    expect(() => validateClubes({ '336': { nombre: 'Sporting CP', escudo: '/escudos/418.png' } })).toThrow(
-      'Club 336 has an invalid crest: /escudos/418.png (expected /escudos/336.png or null)',
+  it('rejects a crest outside /escudos/<id>.webp', () => {
+    expect(() => validateClubes({ '336': { nombre: 'Sporting CP', escudo: '/escudos/418.webp' } })).toThrow(
+      'Club 336 has an invalid crest: /escudos/418.webp (expected /escudos/336.webp or null)',
     )
     expect(() => validateClubes({ '336': { nombre: 'Sporting CP' } })).toThrow(
-      'Club 336 has an invalid crest: undefined (expected /escudos/336.png or null)',
+      'Club 336 has an invalid crest: undefined (expected /escudos/336.webp or null)',
     )
   })
 })

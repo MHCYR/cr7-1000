@@ -1,11 +1,13 @@
 // Regenerates src/data/goles.json, src/data/clubes.json and public/escudos/ from
 // Transfermarkt's JSON API: `pnpm data:real`. Run by hand; the site never calls the API.
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
+import { spawnSync } from 'node:child_process'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { validateClubes, validateGoles } from '../src/data/gol.ts'
 import {
   CRISTIANO_ID,
   clubesFrom,
   clubIdsOf,
+  duplicateCrests,
   golesFromPerformance,
   type ClubEntry,
   type PerformanceEntry,
@@ -46,14 +48,27 @@ async function downloadCrests(ids: readonly string[]): Promise<Set<string>> {
   mkdirSync(crestDir, { recursive: true })
   const withCrest = new Set<string>()
   for (const id of ids) {
-    const file = new URL(`${id}.png`, crestDir)
+    const file = new URL(`${id}.webp`, crestDir)
     if (!existsSync(file)) {
       const response = await fetch(crestUrl(id))
       if (!response.ok) {
         console.warn(`No crest for club ${id} (${response.status}); it gets escudo: null`)
         continue
       }
-      writeFileSync(file, Buffer.from(await response.arrayBuffer()))
+      const input = Buffer.from(await response.arrayBuffer())
+      const converted = spawnSync('magick', [
+        'png:-', '-quality', '90', '-define', 'webp:method=6', '-define', 'webp:alpha-quality=100', 'webp:-',
+      ], { input, maxBuffer: 16 * 1024 * 1024 })
+      if (converted.error) {
+        if ('code' in converted.error && converted.error.code === 'ENOENT') {
+          throw new Error('ImageMagick 7 is required: magick must be on PATH')
+        }
+        throw new Error(`Could not convert crest ${id}: ${converted.error.message}`)
+      }
+      if (converted.status !== 0) {
+        throw new Error(`ImageMagick failed converting crest ${id} (exit ${converted.status}): ${converted.stderr.toString().trim()}`)
+      }
+      writeFileSync(file, converted.stdout)
     }
     withCrest.add(id)
   }
@@ -68,7 +83,15 @@ const performance = await getJson<{ performance: PerformanceEntry[] }>(`/player/
 const goles = golesFromPerformance(performance.performance)
 const ids = clubIdsOf(goles)
 const clubs = await fetchClubs(ids)
-const clubes = validateClubes(clubesFrom(clubs, await downloadCrests(ids)))
+const withCrest = await downloadCrests(ids)
+const repeated = duplicateCrests([...withCrest].map((id) => ({
+  id,
+  bytes: readFileSync(new URL(`${id}.webp`, crestDir)),
+})))
+if (repeated.length > 0) {
+  throw new Error(`Repeated crests: ${repeated.map((group) => group.join('=')).join(', ')}`)
+}
+const clubes = validateClubes(clubesFrom(clubs, withCrest))
 // Validate before writing, so a surprising API answer leaves the committed data untouched.
 validateGoles(goles, clubes)
 
