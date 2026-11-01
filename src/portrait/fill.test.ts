@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { EDGE_DISPERSION, FILL_SIZE, disperseEdges, fillSizes } from './fill.ts'
+import { EDGE_DISPERSION, FILL_KEEP, FILL_SIZE, GLITCH_BAND, disperseEdges, fillSizes, thinFill } from './fill.ts'
 
 const interior = new Float32Array(400)
 const edge = new Float32Array(400).fill(1)
@@ -64,5 +64,68 @@ describe('disperseEdges', () => {
 
   it('is deterministic for the same seed', () => {
     expect(disperseEdges(positions, edge, cellSize, 9)).toEqual(disperseEdges(positions, edge, cellSize, 9))
+  })
+})
+
+describe('thinFill', () => {
+  // A 200 x 200 grid whose colors and edge encode the cell, to check they stay aligned.
+  const cellSize = 0.005
+  const side = 200
+  const grid = {
+    count: side * side,
+    positions: new Float32Array(side * side * 3),
+    colors: new Float32Array(side * side * 3),
+    edge: new Float32Array(side * side),
+  }
+  for (let row = 0; row < side; row++) {
+    for (let column = 0; column < side; column++) {
+      const i = row * side + column
+      grid.positions.set([(column - 100) * cellSize, (row - 100) * cellSize, 0], i * 3)
+      grid.colors.set([column / side, row / side, 0.5], i * 3)
+      grid.edge[i] = (row * side + column) / (side * side)
+    }
+  }
+
+  it('keeps only part of the fill pixels, leaving empty space between them', () => {
+    const thinned = thinFill(grid, cellSize, 11)
+    const kept = thinned.count / grid.count
+
+    expect(kept).toBeGreaterThan(FILL_KEEP.min)
+    expect(kept).toBeLessThan(FILL_KEEP.max)
+    expect(thinned.positions).toHaveLength(thinned.count * 3)
+    expect(thinned.colors).toHaveLength(thinned.count * 3)
+    expect(thinned.edge).toHaveLength(thinned.count)
+  })
+
+  it('keeps the color and edge of every kept pixel with its position', () => {
+    const thinned = thinFill(grid, cellSize, 11)
+
+    for (let i = 0; i < thinned.count; i++) {
+      const column = Math.round(thinned.positions[i * 3] / cellSize) + 100
+      const row = Math.round(thinned.positions[i * 3 + 1] / cellSize) + 100
+      expect(thinned.colors[i * 3]).toBeCloseTo(column / side)
+      expect(thinned.colors[i * 3 + 1]).toBeCloseTo(row / side)
+      expect(thinned.edge[i]).toBeCloseTo((row * side + column) / (side * side))
+    }
+  })
+
+  it('thins some horizontal bands much more than others, like a glitch', () => {
+    const thinned = thinFill(grid, cellSize, 11)
+    const keptPerRow = new Array(side).fill(0)
+    for (let i = 0; i < thinned.count; i++) keptPerRow[Math.round(thinned.positions[i * 3 + 1] / cellSize) + 100]++
+
+    const ratios = keptPerRow.map((kept) => kept / side)
+    expect(Math.max(...ratios) - Math.min(...ratios)).toBeGreaterThan((FILL_KEEP.max - FILL_KEEP.min) / 2)
+    // Rows in the same band share their density.
+    for (let row = 0; row + 1 < side; row++) {
+      if (Math.floor(row / GLITCH_BAND) === Math.floor((row + 1) / GLITCH_BAND)) {
+        expect(Math.abs(ratios[row] - ratios[row + 1])).toBeLessThan((FILL_KEEP.max - FILL_KEEP.min) / 2)
+      }
+    }
+  })
+
+  it('is deterministic for the same seed', () => {
+    expect(thinFill(grid, cellSize, 11)).toEqual(thinFill(grid, cellSize, 11))
+    expect(thinFill(grid, cellSize, 11)).not.toEqual(thinFill(grid, cellSize, 12))
   })
 })

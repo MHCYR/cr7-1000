@@ -2,7 +2,7 @@ import { useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { goles } from '../data/goles.ts'
 import { ASSEMBLY_END, fillDelays, goalDelays, scatterStart } from '../portrait/assemble.ts'
-import { disperseEdges, fillSizes } from '../portrait/fill.ts'
+import { disperseEdges, fillSizes, thinFill } from '../portrait/fill.ts'
 import { loadPortrait } from '../portrait/load.ts'
 import { goalColors } from '../portrait/palette.ts'
 import { FILL_DENSITY, type Portrait } from '../portrait/sample.ts'
@@ -40,12 +40,14 @@ function PortraitCloud({ portrait }: { portrait: Portrait }) {
   const scale = Math.min(viewport.height * FIT.height, (viewport.width * FIT.width) / portrait.aspect)
 
   const buffers = useMemo(() => {
-    const fillPositions = disperseEdges(portrait.fill.positions, portrait.fill.edge, portrait.cellSize, 4)
+    const fill = thinFill(portrait.fill, portrait.cellSize, 6)
+    const fillPositions = disperseEdges(fill.positions, fill.edge, portrait.cellSize, 4)
     return {
       fillPositions,
+      fillColors: fill.colors,
       fillStart: scatterStart(fillPositions, 1),
-      fillDelays: fillDelays(portrait.fill.count, 2),
-      fillSizes: fillSizes(portrait.fill.edge, 5),
+      fillDelays: fillDelays(fill.count, 2),
+      fillSizes: fillSizes(fill.edge, 5),
       goalStart: scatterStart(portrait.goals.positions, 3),
       goalDelays: goalDelays(portrait.goals.count),
       goalColors: goalColors(portrait.goals.count, goles.length),
@@ -70,7 +72,7 @@ function PortraitCloud({ portrait }: { portrait: Portrait }) {
         positions={buffers.fillPositions}
         start={buffers.fillStart}
         delays={buffers.fillDelays}
-        colors={portrait.fill.colors}
+        colors={buffers.fillColors}
         sizes={buffers.fillSizes}
         clock={clock}
         size={portrait.cellSize * scale}

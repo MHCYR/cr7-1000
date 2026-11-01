@@ -1,12 +1,22 @@
 import { createRandom } from '../lib/random.ts'
+import type { Portrait } from './sample.ts'
 
-// Look of the fill pixels: small squares of random sizes, and a pixel dispersion on the
-// edge of the figure that softens its outline. `edge` is the per-pixel value from
+// Look of the fill pixels: squares of random sizes thinned out in glitchy horizontal bands,
+// and a pixel dispersion on the edge of the figure that softens its outline. `edge` is the per-pixel value from
 // samplePortrait (src/portrait/sample.ts): 1 on the outermost pixels, falling to 0 inside.
 // Goal pixels are not touched by any of this.
 
 /** Side of a fill pixel, relative to a grid cell: each pixel gets a random one in this range. */
 export const FILL_SIZE = { min: 1.2, max: 3.6 } as const
+
+/**
+ * Share of the fill pixels kept, drawn per horizontal band so some bands are almost full
+ * and others nearly empty: the empty space and the uneven bands give the glitch look.
+ */
+export const FILL_KEEP = { min: 0.03, max: 0.3 } as const
+
+/** Height of a glitch band, in grid rows. */
+export const GLITCH_BAND = 4
 
 /** Farthest an edge pixel scatters from its cell, in grid cells. */
 export const EDGE_DISPERSION = 3
@@ -44,4 +54,41 @@ export function disperseEdges(positions: Float32Array, edge: Float32Array, cellS
     dispersed[i * 3 + 1] += Math.sin(angle) * distance
   }
   return dispersed
+}
+
+/**
+ * Drops part of the fill pixels to leave empty space between them. Every band of GLITCH_BAND
+ * grid rows keeps its own random share in [FILL_KEEP.min, FILL_KEEP.max]; colors and edge
+ * values stay with their pixels.
+ */
+export function thinFill(fill: Portrait['fill'], cellSize: number, seed: number): Portrait['fill'] {
+  const random = createRandom(seed)
+  const bandKeep = new Map<number, number>()
+  const keepOf = (band: number) => {
+    let keep = bandKeep.get(band)
+    if (keep === undefined) {
+      keep = FILL_KEEP.min + createRandom((seed * 1_000_003 + band * 7_919) >>> 0)() * (FILL_KEEP.max - FILL_KEEP.min)
+      bandKeep.set(band, keep)
+    }
+    return keep
+  }
+
+  const kept: number[] = []
+  for (let i = 0; i < fill.count; i++) {
+    const band = Math.floor(Math.round(fill.positions[i * 3 + 1] / cellSize) / GLITCH_BAND)
+    if (random() < keepOf(band)) kept.push(i)
+  }
+
+  const thinned = {
+    count: kept.length,
+    positions: new Float32Array(kept.length * 3),
+    colors: new Float32Array(kept.length * 3),
+    edge: new Float32Array(kept.length),
+  }
+  kept.forEach((index, i) => {
+    thinned.positions.set(fill.positions.subarray(index * 3, index * 3 + 3), i * 3)
+    thinned.colors.set(fill.colors.subarray(index * 3, index * 3 + 3), i * 3)
+    thinned.edge[i] = fill.edge[index]
+  })
+  return thinned
 }
