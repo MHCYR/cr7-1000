@@ -38,6 +38,12 @@ Con `pnpm dev` aparece un panel Leva con tres grupos: **Animación**, **Píxeles
 
 Leva es una dependencia de desarrollo y se importa dinámicamente solo bajo `import.meta.env.DEV`. `pnpm build` y `pnpm preview` no incluyen ni muestran el panel. Los tamaños, bordes y colores de los píxeles de gol, el umbral de transparencia y la ruta de la foto no se exponen.
 
+## Túnel
+
+El scroll de la página mueve la escena; la cámara no se controla de otra forma. El primer viewport de scroll lleva el progreso de 0 a 1: los píxeles de gol vuelan del retrato al túnel y los píxeles de relleno se desvanecen. El resto del scroll mueve la cámara en Z desde el retrato hasta el gol 1000. Al volver arriba, el retrato se rearma.
+
+En el túnel, el gol número n está en `z = -n × separación`, con X/Y al azar (semilla fija) en un anillo alrededor del eje de la cámara, para que la cámara pase junto a los goles. El gol actual es `round(-z / separación)` de la cámara: 0 antes de entrar al túnel y nunca más que el último gol. Las constantes (`separation`, `radius`, `cameraStart` y `pixelsPerGoal`) están en `TUNNEL`, en `src/tunnel/tunnel.ts`; la interpolación ocurre en el shader, sin rerenders de React por frame.
+
 ## Datos de goles
 
 Los goles oficiales están en `src/data/goles.json`, un gol por línea con `numero`, `fecha` (`YYYY-MM-DD`), `equipo` y `rival`. Se validan al cargar la página y en `pnpm test`: los números van seguidos desde 1, sin repetirse, y las fechas nunca retroceden.

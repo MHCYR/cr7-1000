@@ -1,6 +1,7 @@
 import { useFrame } from '@react-three/fiber'
 import { type RefObject, useRef, useState } from 'react'
-import type { ShaderMaterial } from 'three'
+import type { Points, ShaderMaterial } from 'three'
+import type { ScrollState } from '../tunnel/tunnel.ts'
 import type { AnimationClock } from './animationClock.ts'
 import { assemblyFragmentShader, assemblyVertexShader } from './assemblyShader.ts'
 
@@ -16,6 +17,10 @@ interface AssemblingPointsProps {
   sizes: Float32Array
   /** Shared animation clock. */
   clock: RefObject<AnimationClock>
+  /** Shared, damped scroll state; its progress drives the tunnel. */
+  scroll: RefObject<ScrollState>
+  /** xyz tunnel positions in world units: with them the points fly to the tunnel, without them they fade out. */
+  tunnel?: Float32Array
   /** Base point side, in world units. */
   size: number
   /** Dark outline width, as a share of the point side. */
@@ -27,8 +32,12 @@ interface AssemblingPointsProps {
   renderOrder?: number
 }
 
-/** One THREE.Points (one draw call) whose points fly from `start` to `positions`. */
-export function AssemblingPoints({ positions, start, delays, colors, sizes, clock, size, outline = 0, duration, initialOpacity, renderOrder }: AssemblingPointsProps) {
+/**
+ * One THREE.Points (one draw call) whose points fly from `start` to `positions`, and on scroll
+ * either to `tunnel` or out of sight.
+ */
+export function AssemblingPoints({ positions, start, delays, colors, sizes, clock, scroll, tunnel, size, outline = 0, duration, initialOpacity, renderOrder }: AssemblingPointsProps) {
+  const points = useRef<Points>(null)
   const material = useRef<ShaderMaterial>(null)
   // One object for the life of the component: the dev controls only change its values, so
   // the material is never rebuilt or recompiled.
@@ -39,7 +48,10 @@ export function AssemblingPoints({ positions, start, delays, colors, sizes, cloc
     uViewportHeight: { value: 1 },
     uSize: { value: size },
     uOutline: { value: outline },
+    uProgress: { value: 0 },
   }))
+  // Fixed per mount: a tunnel is either given or not, so the shader compiles once.
+  const [defines] = useState(() => (tunnel ? { TUNNEL: '' } : {}))
 
   useFrame((state) => {
     if (!material.current) return
@@ -50,23 +62,28 @@ export function AssemblingPoints({ positions, start, delays, colors, sizes, cloc
     values.uSize.value = size
     values.uOutline.value = outline
     values.uViewportHeight.value = state.size.height * state.viewport.dpr
+    values.uProgress.value = scroll.current.progress
+    // Faded fill pixels cost nothing while the camera is in the tunnel.
+    if (points.current && !tunnel) points.current.visible = scroll.current.progress < 0.999
   })
 
   return (
     // The bounding sphere only covers the final positions, so culling could hide scattered points.
-    <points frustumCulled={false} renderOrder={renderOrder}>
+    <points ref={points} frustumCulled={false} renderOrder={renderOrder}>
       <bufferGeometry>
         <bufferAttribute attach="attributes-position" args={[positions, 3]} />
         <bufferAttribute attach="attributes-aStart" args={[start, 3]} />
         <bufferAttribute attach="attributes-aDelay" args={[delays, 1]} />
         <bufferAttribute attach="attributes-aColor" args={[colors, 3]} />
         <bufferAttribute attach="attributes-aSize" args={[sizes, 1]} />
+        {tunnel && <bufferAttribute attach="attributes-aTunnel" args={[tunnel, 3]} />}
       </bufferGeometry>
       <shaderMaterial
         ref={material}
         vertexShader={assemblyVertexShader}
         fragmentShader={assemblyFragmentShader}
         uniforms={uniforms}
+        defines={defines}
         transparent
         depthWrite={false}
       />
