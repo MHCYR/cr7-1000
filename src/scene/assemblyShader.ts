@@ -2,7 +2,7 @@ import { ASSEMBLY } from '../portrait/assemble.ts'
 
 // GPU side of the entry animation. Mirrors assemblyOffset in src/portrait/assemble.ts:
 // keep both in sync. Colors are written as sRGB on purpose (no color management), so the
-// dust shows the exact colors of the photo and the goals the exact palette.
+// fill pixels show the exact colors of the photo and the goals the exact palette.
 
 export const assemblyVertexShader = /* glsl */ `
   attribute vec3 aStart;
@@ -39,7 +39,7 @@ export const assemblyFragmentShader = /* glsl */ `
   varying float vAlpha;
 
   void main() {
-    // The outline keeps goal pixels apart from dust of a similar color.
+    // The outline keeps goal pixels apart from fill pixels of a similar color.
     vec2 edge = min(gl_PointCoord, 1.0 - gl_PointCoord);
     float outline = step(min(edge.x, edge.y), uOutline);
     gl_FragColor = vec4(mix(vColor, vColor * 0.2, outline), vAlpha);

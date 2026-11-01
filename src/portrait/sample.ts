@@ -1,6 +1,6 @@
 import { createRandom } from '../lib/random.ts'
 
-// Turns the portrait photo into the hybrid cloud (docs/adr/0001): a dense grid of dust
+// Turns the portrait photo into the hybrid cloud (docs/adr/0001): a dense grid of fill pixels
 // colored by the photo, with the goal pixels spread inside the figure.
 
 /** The pixels of an image, as returned by CanvasRenderingContext2D.getImageData. */
@@ -11,14 +11,14 @@ export interface ImageLike {
   data: ArrayLike<number>
 }
 
-/** Approximate dust points per device (docs/SPEC.md); choosing the device is #7. */
-export const DUST_DENSITY = { desktop: 50_000, mobile: 20_000 } as const
+/** Approximate fill pixels per device (docs/SPEC.md); choosing the device is #7. */
+export const FILL_DENSITY = { desktop: 50_000, mobile: 20_000 } as const
 
 export const GOAL_PIXELS = 1000
 
 export interface PortraitOptions {
-  /** Approximate number of dust points. */
-  dustCount: number
+  /** Approximate number of fill pixels. */
+  fillCount: number
   goalCount?: number
   /** Seed for spreading the goal pixels; the same seed gives the same portrait. */
   seed?: number
@@ -35,7 +35,7 @@ export interface Portrait {
   /** Distance between neighbouring grid cells, in portrait units. */
   cellSize: number
   /** Colors are rgb triplets in [0, 1], ready for a THREE.BufferAttribute. */
-  dust: { count: number; positions: Float32Array; colors: Float32Array }
+  fill: { count: number; positions: Float32Array; colors: Float32Array }
   /** Goal pixel i holds goal number i + 1: chronological from the feet to the head. */
   goals: { count: number; positions: Float32Array }
 }
@@ -48,13 +48,13 @@ interface Cell {
 
 export function samplePortrait(image: ImageLike, options: PortraitOptions): Portrait {
   const { width, height, data } = image
-  const { dustCount, goalCount = GOAL_PIXELS, seed = 1000, alphaThreshold = 128 } = options
+  const { fillCount, goalCount = GOAL_PIXELS, seed = 1000, alphaThreshold = 128 } = options
 
   let opaquePixels = 0
   for (let i = 3; i < data.length; i += 4) if (data[i] >= alphaThreshold) opaquePixels++
 
-  // Grid step (in pixels) so the figure holds about dustCount + goalCount cells.
-  const step = Math.max(1, Math.sqrt(opaquePixels / (dustCount + goalCount)))
+  // Grid step (in pixels) so the figure holds about fillCount + goalCount cells.
+  const step = Math.max(1, Math.sqrt(opaquePixels / (fillCount + goalCount)))
 
   const cells: Cell[] = []
   for (let row = 0; (row + 0.5) * step < height; row++) {
@@ -80,20 +80,20 @@ export function samplePortrait(image: ImageLike, options: PortraitOptions): Port
     ;[cells[i], cells[j]] = [cells[j], cells[i]]
   }
   const goalCells = cells.slice(0, goalCount).sort((a, b) => a.y - b.y || a.x - b.x)
-  const dustCells = cells.slice(goalCount)
+  const fillCells = cells.slice(goalCount)
 
-  const dust = {
-    count: dustCells.length,
-    positions: new Float32Array(dustCells.length * 3),
-    colors: new Float32Array(dustCells.length * 3),
+  const fill = {
+    count: fillCells.length,
+    positions: new Float32Array(fillCells.length * 3),
+    colors: new Float32Array(fillCells.length * 3),
   }
-  dustCells.forEach((cell, i) => {
-    dust.positions.set([cell.x, cell.y, 0], i * 3)
-    dust.colors.set([data[cell.pixel] / 255, data[cell.pixel + 1] / 255, data[cell.pixel + 2] / 255], i * 3)
+  fillCells.forEach((cell, i) => {
+    fill.positions.set([cell.x, cell.y, 0], i * 3)
+    fill.colors.set([data[cell.pixel] / 255, data[cell.pixel + 1] / 255, data[cell.pixel + 2] / 255], i * 3)
   })
 
   const goals = { count: goalCount, positions: new Float32Array(goalCount * 3) }
   goalCells.forEach((cell, i) => goals.positions.set([cell.x, cell.y, 0], i * 3))
 
-  return { aspect: width / height, cellSize: step / height, dust, goals }
+  return { aspect: width / height, cellSize: step / height, fill, goals }
 }

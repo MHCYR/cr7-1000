@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ASSEMBLY, ASSEMBLY_END, assemblyOffset, dustDelays, goalDelays, scatterStart } from './assemble.ts'
+import { ASSEMBLY, ASSEMBLY_END, assemblyOffset, fillDelays, goalDelays, scatterStart } from './assemble.ts'
 
 const targets = new Float32Array([0, 0, 0, 0.1, -0.2, 0, -0.3, 0.4, 0, 0.2, 0.45, 0])
 
@@ -21,18 +21,18 @@ describe('scatterStart', () => {
 })
 
 describe('delays', () => {
-  it('staggers the dust within the dust window', () => {
-    const delays = dustDelays(500, 3)
+  it('staggers the fill pixels within their window', () => {
+    const delays = fillDelays(500, 3)
 
     expect(delays).toHaveLength(500)
     for (const delay of delays) {
       expect(delay).toBeGreaterThanOrEqual(0)
-      expect(delay).toBeLessThanOrEqual(ASSEMBLY.dustStagger)
+      expect(delay).toBeLessThanOrEqual(ASSEMBLY.fillStagger)
     }
-    expect(dustDelays(500, 3)).toEqual(delays)
+    expect(fillDelays(500, 3)).toEqual(delays)
   })
 
-  it('lands the goal pixels after the dust starts, in chronological order', () => {
+  it('lands the goal pixels after the fill pixels start, in chronological order', () => {
     const delays = goalDelays(1000)
 
     expect(delays).toHaveLength(1000)
@@ -59,7 +59,7 @@ describe('assemblyOffset', () => {
   })
 
   it('ends with every point exactly in the portrait, which then stays still', () => {
-    const delays = [...dustDelays(500, 3), ...goalDelays(1000)]
+    const delays = [...fillDelays(500, 3), ...goalDelays(1000)]
 
     for (const delay of delays) {
       expect(assemblyOffset(ASSEMBLY_END, delay)).toBe(1)

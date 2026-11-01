@@ -1,8 +1,8 @@
 import { createRandom } from '../lib/random.ts'
 
 // Entry animation (docs/SPEC.md, like vadimcarazan.com): every point starts scattered in
-// front of the camera like a starfield and flies to its place in the portrait. The dust
-// lands first; then the goal pixels land in chronological order, from the feet to the head.
+// front of the camera like a starfield and flies to its place in the portrait. The fill
+// pixels land first; then the goal pixels land in chronological order, from the feet to the head.
 // The GPU runs this per point (src/scene/assemblyShader.ts); these functions are the source
 // of truth for the buffers and the timing.
 
@@ -10,8 +10,8 @@ import { createRandom } from '../lib/random.ts'
 export const ASSEMBLY = {
   /** How long one point takes to fly from its start to the portrait. */
   duration: 1,
-  /** Dust points start at random within this window. */
-  dustStagger: 0.8,
+  /** Fill pixels start at random within this window. */
+  fillStagger: 0.8,
   /** When goal 1 starts flying. */
   goalsStart: 0.6,
   /** Time between goal 1 and the last goal pixel starting to fly. */
@@ -19,7 +19,7 @@ export const ASSEMBLY = {
 } as const
 
 /** When the last point lands; from then on the portrait is still. */
-export const ASSEMBLY_END = Math.max(ASSEMBLY.dustStagger, ASSEMBLY.goalsStart + ASSEMBLY.goalsStagger) + ASSEMBLY.duration
+export const ASSEMBLY_END = Math.max(ASSEMBLY.fillStagger, ASSEMBLY.goalsStart + ASSEMBLY.goalsStagger) + ASSEMBLY.duration
 
 /**
  * Start positions for the points whose portrait positions are `targets` (xyz triplets,
@@ -36,11 +36,11 @@ export function scatterStart(targets: Float32Array, seed: number): Float32Array 
   return start
 }
 
-/** Random start delays for the dust, in [0, ASSEMBLY.dustStagger]. */
-export function dustDelays(count: number, seed: number): Float32Array {
+/** Random start delays for the fill pixels, in [0, ASSEMBLY.fillStagger]. */
+export function fillDelays(count: number, seed: number): Float32Array {
   const random = createRandom(seed)
   const delays = new Float32Array(count)
-  for (let i = 0; i < count; i++) delays[i] = random() * ASSEMBLY.dustStagger
+  for (let i = 0; i < count; i++) delays[i] = random() * ASSEMBLY.fillStagger
   return delays
 }
 

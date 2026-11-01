@@ -31,8 +31,12 @@ El conjunto de todos los puntos que forman la figura de Cristiano en 3D.
 _Avoid_: point cloud, partículas
 
 **Polvo**:
-Los puntos decorativos de la nube que solo dibujan la figura y no se pueden clicar.
-_Avoid_: partículas de fondo, relleno
+En el prototipo A, los puntos decorativos de la nube que solo dibujan la figura y no se pueden clicar.
+_Avoid_: partículas de fondo, píxeles (en el prototipo A)
+
+**Píxel de relleno**:
+En el prototipo B, cada uno de los cuadros decorativos del retrato, de tamaño aleatorio, que solo dibujan la figura y no se pueden clicar. Cumple el papel del polvo del prototipo A.
+_Avoid_: polvo (en el prototipo B), partículas
 
 **Punto de gol**:
 Uno de los 1000 puntos de la nube que representa un número de gol y se puede clicar.
