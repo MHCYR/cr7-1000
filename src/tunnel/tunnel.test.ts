@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { FILL_ZOOM, TUNNEL, currentGoal, fillZoom, nearFade, scrollHeight, scrollState, tunnelPositions } from './tunnel.ts'
+import { FILL_ZOOM, TUNNEL, currentGoal, fillOffset, fillOrder, nearFade, scrollHeight, scrollState, tunnelPositions } from './tunnel.ts'
 
 const { separation } = TUNNEL
 
@@ -85,35 +85,85 @@ describe('scrollState', () => {
   })
 })
 
-describe('fillZoom', () => {
-  const zoom = { end: 0.6, travel: 6 }
+describe('fillOffset', () => {
+  const zoom = { zoomEnd: 0.25, zoomDepth: 2, flyEnd: 0.75, flight: 0.2, reach: 6 }
 
   it('leaves the portrait in place at the top of the page', () => {
-    expect(fillZoom(0, zoom)).toBe(0)
-    expect(fillZoom(-0.2, zoom)).toBe(0)
+    expect(fillOffset(0, 0, zoom)).toBe(0)
+    expect(fillOffset(-0.2, 1, zoom)).toBe(0)
   })
 
-  it('brings the fill pixels toward the camera as the goals fly, so the camera enters the image', () => {
-    const steps = [0.1, 0.2, 0.3, 0.4, 0.5].map((progress) => fillZoom(progress, zoom))
-    for (let i = 1; i < steps.length; i++) expect(steps[i]).toBeGreaterThan(steps[i - 1])
-    expect(fillZoom(0.3, zoom)).toBeCloseTo(3)
+  it('first brings the whole image toward the camera at once, so it grows', () => {
+    for (const progress of [0.05, 0.125, 0.2]) {
+      expect(fillOffset(progress, 0, zoom)).toBe(fillOffset(progress, 1, zoom))
+      expect(fillOffset(progress, 0.4, zoom)).toBe(fillOffset(progress, 1, zoom))
+    }
+    expect(fillOffset(0.125, 0.5, zoom)).toBeCloseTo(1)
+    expect(fillOffset(0.25, 0.5, zoom)).toBe(2)
   })
 
-  it('finishes before the goals land: from `end` on, the fill sits `travel` past the portrait', () => {
-    expect(fillZoom(0.6, zoom)).toBe(6)
-    expect(fillZoom(0.8, zoom)).toBe(6)
-    expect(fillZoom(1, zoom)).toBe(6)
+  it('then flies the pixels one by one: lower order first, the rest wait at zoomDepth', () => {
+    // order 0 starts at zoomEnd; order 1 waits until flyEnd - flight.
+    expect(fillOffset(0.35, 0, zoom)).toBeCloseTo(4)
+    expect(fillOffset(0.35, 1, zoom)).toBe(2)
+    expect(fillOffset(0.5, 0.2, zoom)).toBeGreaterThan(fillOffset(0.5, 0.6, zoom))
+    expect(fillOffset(0.5, 0.6, zoom)).toBeGreaterThan(fillOffset(0.5, 0.9, zoom))
+    expect(fillOffset(0.55, 1, zoom)).toBe(2)
+    expect(fillOffset(0.65, 1, zoom)).toBeCloseTo(4)
   })
 
-  it('is reversible: the same progress always gives the same offset', () => {
-    fillZoom(1, zoom)
-    expect(fillZoom(0.3, zoom)).toBe(fillZoom(0.3, zoom))
-    expect(fillZoom(0, zoom)).toBe(0)
+  it('has every pixel at reach, past the portrait, by flyEnd', () => {
+    for (const order of [0, 0.3, 0.7, 1]) {
+      expect(fillOffset(0.75, order, zoom)).toBe(6)
+      expect(fillOffset(1, order, zoom)).toBe(6)
+    }
   })
 
-  it('by default takes every fill pixel past the camera before the goals land', () => {
-    expect(FILL_ZOOM.end).toBeLessThan(1)
-    expect(fillZoom(FILL_ZOOM.end, FILL_ZOOM)).toBeGreaterThan(TUNNEL.cameraStart)
+  it('is reversible: the same progress and order always give the same offset', () => {
+    fillOffset(1, 0.5, zoom)
+    expect(fillOffset(0.5, 0.5, zoom)).toBe(fillOffset(0.5, 0.5, zoom))
+    expect(fillOffset(0, 0.5, zoom)).toBe(0)
+  })
+
+  it('flies every pixel at once when the windows leave no room for a stagger', () => {
+    const tight = { ...zoom, flyEnd: 0.4, flight: 0.3 }
+    expect(fillOffset(0.35, 0, tight)).toBe(fillOffset(0.35, 1, tight))
+    expect(fillOffset(0.4, 1, tight)).toBe(6)
+  })
+
+  it('by default grows the image, then takes every fill pixel past the camera before the goals land', () => {
+    expect(FILL_ZOOM.zoomEnd).toBeLessThan(FILL_ZOOM.flyEnd)
+    expect(FILL_ZOOM.flyEnd).toBeLessThan(1)
+    expect(FILL_ZOOM.zoomDepth).toBeLessThan(TUNNEL.cameraStart)
+    expect(fillOffset(FILL_ZOOM.flyEnd, 1, FILL_ZOOM)).toBeGreaterThan(TUNNEL.cameraStart)
+  })
+})
+
+describe('fillOrder', () => {
+  // xyz triplets: the center, a pixel halfway out and two on the edge.
+  const positions = new Float32Array([0, 0, 0, 0.5, 0, 0, 0, -1, 0, 1, 0, 0])
+
+  it('without jitter is the distance to the center, as a share of the farthest pixel', () => {
+    expect(Array.from(fillOrder(positions, 3, 0))).toEqual([0, 0.5, 1, 1])
+  })
+
+  it('mixes in some randomness, so the center-out order is not a perfect ring', () => {
+    const order = fillOrder(positions, 3, 0.3)
+    expect(order[2]).not.toBe(order[3])
+    for (let i = 0; i < 4; i++) {
+      const radial = [0, 0.5, 1, 1][i] * 0.7
+      expect(order[i]).toBeGreaterThanOrEqual(radial)
+      expect(order[i]).toBeLessThanOrEqual(radial + 0.3)
+    }
+  })
+
+  it('is fixed by its seed', () => {
+    expect(fillOrder(positions, 3, 0.3)).toEqual(fillOrder(positions, 3, 0.3))
+    expect(fillOrder(positions, 4, 0.3)).not.toEqual(fillOrder(positions, 3, 0.3))
+  })
+
+  it('stays in [0, 1] for a single pixel at the center', () => {
+    expect(Array.from(fillOrder(new Float32Array(3), 3, 0))).toEqual([0])
   })
 })
 

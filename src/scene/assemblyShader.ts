@@ -1,8 +1,9 @@
 // GPU side of the entry animation and the tunnel. Mirrors assemblyOffset in
-// src/portrait/assemble.ts and nearFade in src/tunnel/tunnel.ts: keep them in sync. With TUNNEL
-// defined (goal pixels), uProgress flies each point from the portrait to aTunnel, in world
-// units (src/tunnel/tunnel.ts); without it (fill pixels), uZoom moves the points toward the
-// camera, and they fade out as they reach it. Colors are written as sRGB on purpose (no color management), so the
+// src/portrait/assemble.ts, and fillOffset and nearFade in src/tunnel/tunnel.ts: keep them in
+// sync. With TUNNEL defined (goal pixels), uProgress flies each point from the portrait to
+// aTunnel, in world units (src/tunnel/tunnel.ts); without it (fill pixels), uProgress brings
+// the whole image toward the camera and then each point past it in aOrder, fading it out as it
+// reaches the camera. Colors are written as sRGB on purpose (no color management), so the
 // fill pixels show the exact colors of the photo and the goals the exact palette.
 
 export const assemblyVertexShader = /* glsl */ `
@@ -12,6 +13,9 @@ export const assemblyVertexShader = /* glsl */ `
   attribute vec3 aColor;
   #ifdef TUNNEL
   attribute vec3 aTunnel;
+  #else
+  // Fly-out order of a fill pixel, in [0, 1] (fillOrder).
+  attribute float aOrder;
   #endif
 
   uniform float uTime;
@@ -23,9 +27,12 @@ export const assemblyVertexShader = /* glsl */ `
   // 0 with the portrait assembled, 1 with the goal pixels in the tunnel.
   uniform float uProgress;
   #ifndef TUNNEL
-  // World units the fill has moved toward the camera (fillZoom), and the distance to the
-  // camera from which a fill pixel fades out.
-  uniform float uZoom;
+  // FILL_ZOOM: timings as shares of uProgress, lengths in world units.
+  uniform float uZoomEnd;
+  uniform float uZoomDepth;
+  uniform float uFlyEnd;
+  uniform float uFlight;
+  uniform float uReach;
   uniform float uFade;
   #endif
 
@@ -40,7 +47,10 @@ export const assemblyVertexShader = /* glsl */ `
     #ifdef TUNNEL
     worldPosition.xyz = mix(worldPosition.xyz, aTunnel, smoothstep(0.0, 1.0, uProgress));
     #else
-    worldPosition.z += uZoom;
+    float together = smoothstep(0.0, max(uZoomEnd, 0.0001), uProgress) * uZoomDepth;
+    float flight = max(min(uFlight, uFlyEnd - uZoomEnd), 0.0001);
+    float launch = uZoomEnd + aOrder * max(uFlyEnd - uZoomEnd - flight, 0.0);
+    worldPosition.z += together + smoothstep(launch, launch + flight, uProgress) * (uReach - uZoomDepth);
     #endif
     vec4 viewPosition = viewMatrix * worldPosition;
     gl_Position = projectionMatrix * viewPosition;

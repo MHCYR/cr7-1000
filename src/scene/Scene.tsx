@@ -33,11 +33,11 @@ interface SceneProps {
 
 /**
  * Prototype B: the portrait of fill and goal pixels, built on entry, and the tunnel the goal
- * pixels fly to on scroll while the fill comes toward the camera and past it, and then the
- * camera moves along Z. Each change of
+ * pixels fly to on scroll while the fill comes toward the camera, first as a whole and then one
+ * by one past it, and then the camera moves along Z. Each change of
  * the settings does the least work it needs: the photo is decoded once, sampled again only
  * for the sampling settings and the seed, and its buffers are rebuilt only for the settings
- * that shape them. Duration, initial opacity, fit and zoom just update the shader and the scale.
+ * that shape them. Duration, initial opacity, fit and the zoom timing just update the shader and the scale.
  */
 export function Scene({ settings = DEFAULT_SETTINGS, restart = 0 }: SceneProps) {
   const [image, setImage] = useState<ImageData | null>(null)
@@ -81,15 +81,17 @@ function PortraitCloud({ portrait, settings, restart }: { portrait: Portrait; se
   const { fillStagger, goalsStart, goalsStagger } = assembly
   const { x, y, z } = settings.scatter
   const { size, dispersion, shrink } = settings.fill
+  const { jitter } = settings.zoom
   const buffers = useMemo(
     () =>
       buildBuffers(portrait, {
         assembly: { fillStagger, goalsStart, goalsStagger },
         scatter: { x, y, z },
         fill: { size: { min: size.min, max: size.max }, dispersion, shrink },
+        zoom: { jitter },
         seed: settings.seed,
       }),
-    [portrait, fillStagger, goalsStart, goalsStagger, x, y, z, size.min, size.max, dispersion, shrink, settings.seed],
+    [portrait, fillStagger, goalsStart, goalsStagger, x, y, z, size.min, size.max, dispersion, shrink, jitter, settings.seed],
   )
   const goals = useMemo(
     () => ({ colors: goalColors(portrait.goals.count, goles.length), sizes: new Float32Array(portrait.goals.count).fill(1) }),
@@ -135,6 +137,7 @@ function PortraitCloud({ portrait, settings, restart }: { portrait: Portrait; se
         clock={clock}
         scroll={scroll}
         zoom={settings.zoom}
+        order={buffers.fillOrder}
         size={portrait.cellSize * scale}
         duration={assembly.duration}
         initialOpacity={initialOpacity}

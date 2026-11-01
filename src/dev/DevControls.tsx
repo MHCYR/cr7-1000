@@ -33,8 +33,12 @@ export default function DevControls({ children }: DevControlsProps) {
       shrink: { label: 'Encogimiento borde', value: defaults.fill.shrink, min: 0, max: 1, step: 0.01 },
     }),
     'Entrada al túnel': folder({
-      zoomEnd: { label: 'Fin del zoom (progreso)', value: defaults.zoom.end, min: 0.05, max: 1, step: 0.01 },
-      zoomTravel: { label: 'Recorrido del relleno', value: defaults.zoom.travel, min: 0, max: 20, step: 0.1 },
+      zoomEnd: { label: 'Fin del zoom conjunto', value: defaults.zoom.zoomEnd, min: 0.01, max: 1, step: 0.01 },
+      zoomDepth: { label: 'Acercamiento conjunto', value: defaults.zoom.zoomDepth, min: 0, max: 10, step: 0.1 },
+      flyEnd: { label: 'Fin del uno a uno', value: defaults.zoom.flyEnd, min: 0.01, max: 1, step: 0.01 },
+      flight: { label: 'Vuelo de un píxel', value: defaults.zoom.flight, min: 0.01, max: 1, step: 0.01 },
+      reach: { label: 'Recorrido total', value: defaults.zoom.reach, min: 0, max: 20, step: 0.1 },
+      jitter: { label: 'Azar del orden', value: defaults.zoom.jitter, min: 0, max: 1, step: 0.01 },
       zoomFade: { label: 'Distancia de fundido', value: defaults.zoom.fade, min: 0.05, max: 5, step: 0.05 },
     }),
     'Encuadre y semillas': folder({
@@ -51,7 +55,15 @@ export default function DevControls({ children }: DevControlsProps) {
     sampling: { density: values.density, edgeBand: values.edgeBand },
     fit: { height: values.fitHeight, width: values.fitWidth },
     initialOpacity: values.initialOpacity,
-    zoom: { end: values.zoomEnd, travel: values.zoomTravel, fade: values.zoomFade },
+    zoom: {
+      zoomEnd: values.zoomEnd,
+      zoomDepth: values.zoomDepth,
+      flyEnd: values.flyEnd,
+      flight: values.flight,
+      reach: values.reach,
+      fade: values.zoomFade,
+      jitter: values.jitter,
+    },
     seed: values.seed,
   }
 

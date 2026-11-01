@@ -2,7 +2,7 @@
 // goal number n at z = -n × separation, and page scroll first flies the goal pixels there
 // (progress 0 → 1) and then moves the camera along Z, past the goals from 1 to the last.
 // Meanwhile the fill pixels come toward the camera and pass beside it, so the camera enters
-// the image instead of watching it fade. All lengths are world units; the GPU does the
+// the image instead of watching it fade: first all at once, then one by one. All lengths are world units; the GPU does the
 // interpolation (src/scene/assemblyShader.ts).
 
 import { createRandom } from '../lib/random.ts'
@@ -18,14 +18,26 @@ export const TUNNEL = {
   pixelsPerGoal: 24,
 } as const
 
-/** How the fill pixels come toward the camera while the goals fly to the tunnel. */
+/**
+ * How the fill pixels come toward the camera while the goals fly to the tunnel: first the whole
+ * image at once, so it grows, then one by one from the center out, as if it had depth. Every
+ * timing is a share of the scroll progress (0 to 1), every length in world units.
+ */
 export const FILL_ZOOM = {
-  /** Progress at which every fill pixel is past the camera; below 1, the goals finish aligning in sight. */
-  end: 0.65,
-  /** How far toward the camera the fill moves, from the portrait: past cameraStart, so it ends behind the camera. */
-  travel: TUNNEL.cameraStart + 0.5,
+  /** Progress at which the image stops growing as a whole. */
+  zoomEnd: 0.25,
+  /** How far toward the camera the whole image comes by zoomEnd; below cameraStart. */
+  zoomDepth: 2.5,
+  /** Progress at which the last fill pixel is past the camera; below 1, the goals finish aligning in sight. */
+  flyEnd: 0.75,
+  /** Progress one fill pixel takes to fly from zoomDepth past the camera. */
+  flight: 0.2,
+  /** How far toward the camera each fill pixel ends, from the portrait: past cameraStart, behind the camera. */
+  reach: TUNNEL.cameraStart + 0.5,
   /** Distance to the camera from which a fill pixel starts fading out, so it never fills the screen. */
   fade: 1.5,
+  /** Share of randomness in the fly-out order: 0 is a perfect ring from the center out, 1 is pure chance. */
+  jitter: 0.3,
 } as const
 
 export type FillZoom = { -readonly [K in keyof typeof FILL_ZOOM]: number }
@@ -72,12 +84,44 @@ function smoothstep(edge0: number, edge1: number, x: number): number {
 }
 
 /**
- * How far toward the camera (+Z) the fill pixels are at this progress: 0 with the portrait
- * assembled, `travel` from `end` on. Every pixel moves the same, so the perspective grows them
- * and spreads them from the center of the screen, as if the camera went into the photo.
+ * How far toward the camera (+Z) a fill pixel is at this progress, from the portrait. Up to
+ * zoomEnd every pixel moves the same, so the perspective grows the image from the center of
+ * the screen; then each one flies past the camera, those of lower `order` first, while the rest
+ * wait at zoomDepth, and by flyEnd all of them are at `reach`. When the windows leave no room
+ * for a stagger, they all fly at once. The vertex shader applies the same formula
+ * (src/scene/assemblyShader.ts).
  */
-export function fillZoom(progress: number, { end, travel }: Pick<FillZoom, 'end' | 'travel'> = FILL_ZOOM): number {
-  return smoothstep(0, end, progress) * travel
+export function fillOffset(
+  progress: number,
+  order: number,
+  { zoomEnd, zoomDepth, flyEnd, flight, reach }: Pick<FillZoom, 'zoomEnd' | 'zoomDepth' | 'flyEnd' | 'flight' | 'reach'> = FILL_ZOOM,
+): number {
+  const together = smoothstep(0, Math.max(zoomEnd, 0.0001), progress) * zoomDepth
+  const duration = Math.max(Math.min(flight, flyEnd - zoomEnd), 0.0001)
+  const launch = zoomEnd + order * Math.max(flyEnd - zoomEnd - duration, 0)
+  return together + smoothstep(launch, launch + duration, progress) * (reach - zoomDepth)
+}
+
+/**
+ * Fly-out order of the fill pixels at `positions` (xyz triplets, centered on the origin), in
+ * [0, 1]: their distance to the center as a share of the farthest one, mixed with `jitter` of
+ * chance, so the face leaves first and the edges last without a perfect ring.
+ */
+export function fillOrder(positions: Float32Array, seed: number, jitter: number = FILL_ZOOM.jitter): Float32Array {
+  const random = createRandom(seed)
+  const count = positions.length / 3
+  const distances = new Float32Array(count)
+  let farthest = 0
+  for (let i = 0; i < count; i++) {
+    distances[i] = Math.hypot(positions[i * 3], positions[i * 3 + 1])
+    farthest = Math.max(farthest, distances[i])
+  }
+  const order = new Float32Array(count)
+  for (let i = 0; i < count; i++) {
+    const radial = farthest > 0 ? distances[i] / farthest : 0
+    order[i] = (1 - jitter) * radial + jitter * random()
+  }
+  return order
 }
 
 /**

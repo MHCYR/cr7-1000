@@ -28,8 +28,8 @@ Con `pnpm dev` aparece un panel Leva con cuatro grupos: **Animación**, **Píxel
 
 | Cambio | Trabajo que realiza |
 |---|---|
-| Duración, opacidad inicial, ocupación del viewport y entrada al túnel | Actualiza uniforms o escala, sin regenerar puntos |
-| Escalonados, arranque de goles, dispersión inicial, tamaños, dispersión y encogimiento del borde | Recalcula buffers sin leer otra vez la foto |
+| Duración, opacidad inicial, ocupación del viewport y tiempos y distancias de la entrada al túnel | Actualiza uniforms o escala, sin regenerar puntos |
+| Escalonados, arranque de goles, dispersión inicial, tamaños, dispersión y encogimiento del borde, azar del orden | Recalcula buffers sin leer otra vez la foto |
 | Densidad, franja de borde y semilla general | Ejecuta `samplePortrait` con los píxeles de la foto ya decodificada; la semilla también cambia los buffers aleatorios |
 
 **Reiniciar animación** reproduce el armado desde t = 0, sin recargar la foto ni el contexto WebGL. Si está activada la preferencia de movimiento reducido del sistema, el retrato permanece armado. Para apreciar cambios en el vuelo o la opacidad inicial después del armado, pulsa este botón.
@@ -42,7 +42,7 @@ Leva es una dependencia de desarrollo y se importa dinámicamente solo bajo `imp
 
 El scroll de la página mueve la escena; la cámara no se controla de otra forma. El primer viewport de scroll lleva el progreso de 0 a 1: los píxeles de gol vuelan del retrato al túnel mientras la cámara entra en la imagen. El resto del scroll mueve la cámara en Z desde el retrato hasta el gol 1000. Al volver arriba, el retrato se rearma.
 
-Para entrar en la imagen, los píxeles de relleno avanzan juntos hacia la cámara (+Z) mientras ella sigue quieta. La perspectiva los agranda y los abre desde el centro de la pantalla; cada píxel se desvanece al acercarse a la cámara y desaparece al pasarla. El zoom termina antes que el vuelo de los goles (en el progreso `end`), así que los goles terminan de alinearse con el relleno ya fuera de la vista. `FILL_ZOOM`, en `src/tunnel/tunnel.ts`, fija `end`, `travel` (cuánto avanza el relleno, más que la distancia a la cámara) y `fade` (desde qué distancia a la cámara se desvanece); se ajustan en el grupo **Entrada al túnel** del panel.
+Para entrar en la imagen, el relleno se mueve en dos pasos mientras la cámara sigue quieta. Primero toda la imagen avanza junta hacia la cámara (+Z) hasta `zoomEnd`, y la perspectiva la agranda desde el centro de la pantalla. Después cada píxel de relleno vuela por su cuenta, pasa junto a la cámara y desaparece detrás de ella, como si la imagen tuviera profundidad: sale primero el centro (la cara) y al final los bordes, según un orden fijo por píxel (`fillOrder`: la distancia al centro con un poco de azar de semilla fija). Cada píxel se desvanece al acercarse a la cámara. Todo el relleno pasa la cámara antes de `flyEnd`, así que los goles terminan de alinearse con el relleno ya fuera de la vista. `FILL_ZOOM`, en `src/tunnel/tunnel.ts`, fija esos tiempos (`zoomEnd`, `flyEnd` y `flight`, como fracción del progreso), las distancias (`zoomDepth`, `reach` y `fade`) y el azar del orden (`jitter`); se ajustan en el grupo **Entrada al túnel** del panel. Cambiar el azar del orden recalcula un buffer; el resto solo actualiza uniforms.
 
 En el túnel, el gol número n está en `z = -n × separación`, con X/Y al azar (semilla fija) en un anillo alrededor del eje de la cámara, para que la cámara pase junto a los goles. El gol actual es `round(-z / separación)` de la cámara: 0 antes de entrar al túnel y nunca más que el último gol. Las constantes (`separation`, `radius`, `cameraStart` y `pixelsPerGoal`) están en `TUNNEL`, en `src/tunnel/tunnel.ts`; la interpolación ocurre en el shader, sin rerenders de React por frame.
 

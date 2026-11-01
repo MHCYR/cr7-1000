@@ -1,7 +1,7 @@
 import { useFrame } from '@react-three/fiber'
 import { type RefObject, useRef, useState } from 'react'
 import type { Points, ShaderMaterial } from 'three'
-import { type FillZoom, type ScrollState, fillZoom } from '../tunnel/tunnel.ts'
+import { type FillZoom, type ScrollState, fillOffset } from '../tunnel/tunnel.ts'
 import type { AnimationClock } from './animationClock.ts'
 import { assemblyFragmentShader, assemblyVertexShader } from './assemblyShader.ts'
 
@@ -23,6 +23,8 @@ interface AssemblingPointsProps {
   tunnel?: Float32Array
   /** How the points come toward the camera when there is no tunnel. */
   zoom?: FillZoom
+  /** Fly-out order of each point toward the camera, in [0, 1]; needed with `zoom`. */
+  order?: Float32Array
   /** Base point side, in world units. */
   size: number
   /** Dark outline width, as a share of the point side. */
@@ -38,7 +40,7 @@ interface AssemblingPointsProps {
  * One THREE.Points (one draw call) whose points fly from `start` to `positions`, and on scroll
  * either to `tunnel` or toward the camera and past it.
  */
-export function AssemblingPoints({ positions, start, delays, colors, sizes, clock, scroll, tunnel, zoom, size, outline = 0, duration, initialOpacity, renderOrder }: AssemblingPointsProps) {
+export function AssemblingPoints({ positions, start, delays, colors, sizes, clock, scroll, tunnel, zoom, order, size, outline = 0, duration, initialOpacity, renderOrder }: AssemblingPointsProps) {
   const points = useRef<Points>(null)
   const material = useRef<ShaderMaterial>(null)
   // One object for the life of the component: the dev controls only change its values, so
@@ -51,7 +53,11 @@ export function AssemblingPoints({ positions, start, delays, colors, sizes, cloc
     uSize: { value: size },
     uOutline: { value: outline },
     uProgress: { value: 0 },
-    uZoom: { value: 0 },
+    uZoomEnd: { value: 1 },
+    uZoomDepth: { value: 0 },
+    uFlyEnd: { value: 1 },
+    uFlight: { value: 1 },
+    uReach: { value: 0 },
     uFade: { value: 1 },
   }))
   // Fixed per mount: a tunnel is either given or not, so the shader compiles once.
@@ -68,10 +74,14 @@ export function AssemblingPoints({ positions, start, delays, colors, sizes, cloc
     values.uViewportHeight.value = state.size.height * state.viewport.dpr
     values.uProgress.value = scroll.current.progress
     if (tunnel || !zoom) return
-    values.uZoom.value = fillZoom(scroll.current.progress, zoom)
+    values.uZoomEnd.value = zoom.zoomEnd
+    values.uZoomDepth.value = zoom.zoomDepth
+    values.uFlyEnd.value = zoom.flyEnd
+    values.uFlight.value = zoom.flight
+    values.uReach.value = zoom.reach
     values.uFade.value = zoom.fade
-    // Fill pixels behind the camera cost nothing while the camera is in the tunnel.
-    if (points.current) points.current.visible = values.uZoom.value < zoom.travel
+    // Order 1 flies last: once it is at reach, fill pixels cost nothing while the camera is in the tunnel.
+    if (points.current) points.current.visible = fillOffset(scroll.current.progress, 1, zoom) < zoom.reach
   })
 
   return (
@@ -84,6 +94,7 @@ export function AssemblingPoints({ positions, start, delays, colors, sizes, cloc
         <bufferAttribute attach="attributes-aColor" args={[colors, 3]} />
         <bufferAttribute attach="attributes-aSize" args={[sizes, 1]} />
         {tunnel && <bufferAttribute attach="attributes-aTunnel" args={[tunnel, 3]} />}
+        {order && <bufferAttribute attach="attributes-aOrder" args={[order, 1]} />}
       </bufferGeometry>
       <shaderMaterial
         ref={material}
