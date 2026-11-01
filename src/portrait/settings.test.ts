@@ -32,7 +32,7 @@ describe('defaultSettings', () => {
       fit: { height: 0.88, width: 0.92 },
       initialOpacity: 0.35,
       zoom: { ...FILL_ZOOM },
-      tunnel: { radiusMin: 3.5, radiusMax: 10, fogNear: 21, fogFar: 100, goalScale: 10 },
+      tunnel: { radiusMin: 0.5, radiusMax: 0.9, fogNear: 13.5, fogFar: 19.5, goalScale: 0.5 },
       seed: 1000,
     })
   })
@@ -240,11 +240,11 @@ describe('serializeSettings', () => {
     jitter: 0.3,
   },
   tunnel: {
-    radiusMin: 3.5,
-    radiusMax: 10,
-    fogNear: 21,
-    fogFar: 100,
-    goalScale: 10,
+    radiusMin: 0.5,
+    radiusMax: 0.9,
+    fogNear: 13.5,
+    fogFar: 19.5,
+    goalScale: 0.5,
   },
   seed: 1000,
 }`)
