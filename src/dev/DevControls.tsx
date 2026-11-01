@@ -32,6 +32,22 @@ export default function DevControls({ children }: DevControlsProps) {
       dispersion: { label: 'Dispersión borde', value: defaults.fill.dispersion, min: 0, max: 20, step: 0.1 },
       shrink: { label: 'Encogimiento borde', value: defaults.fill.shrink, min: 0, max: 1, step: 0.01 },
     }),
+    'Entrada al túnel': folder({
+      zoomEnd: { label: 'Fin del zoom conjunto', value: defaults.zoom.zoomEnd, min: 0.01, max: 1, step: 0.01 },
+      zoomDepth: { label: 'Acercamiento conjunto', value: defaults.zoom.zoomDepth, min: 0, max: 10, step: 0.1 },
+      flyEnd: { label: 'Fin del uno a uno', value: defaults.zoom.flyEnd, min: 0.01, max: 1, step: 0.01 },
+      flight: { label: 'Vuelo de un píxel', value: defaults.zoom.flight, min: 0.01, max: 1, step: 0.01 },
+      reach: { label: 'Recorrido total', value: defaults.zoom.reach, min: 0, max: 20, step: 0.1 },
+      jitter: { label: 'Azar del orden', value: defaults.zoom.jitter, min: 0, max: 1, step: 0.01 },
+      zoomFade: { label: 'Distancia de fundido', value: defaults.zoom.fade, min: 0.05, max: 5, step: 0.05 },
+    }),
+    'Túnel de goles': folder({
+      radiusMin: { label: 'Radio mín.', value: defaults.tunnel.radiusMin, min: 0.1, max: 10, step: 0.1 },
+      radiusMax: { label: 'Radio máx.', value: defaults.tunnel.radiusMax, min: 0.1, max: 10, step: 0.1 },
+      fogNear: { label: 'Niebla cerca', value: defaults.tunnel.fogNear, min: 0, max: 100, step: 0.5 },
+      fogFar: { label: 'Niebla lejos', value: defaults.tunnel.fogFar, min: 0.5, max: 100, step: 0.5 },
+      goalScale: { label: 'Tamaño de gol en el túnel', value: defaults.tunnel.goalScale, min: 0.5, max: 10, step: 0.1 },
+    }),
     'Encuadre y semillas': folder({
       fitHeight: { label: 'Ocupación alto', value: defaults.fit.height, min: 0.1, max: 1, step: 0.01 },
       fitWidth: { label: 'Ocupación ancho', value: defaults.fit.width, min: 0.1, max: 1, step: 0.01 },
@@ -46,6 +62,16 @@ export default function DevControls({ children }: DevControlsProps) {
     sampling: { density: values.density, edgeBand: values.edgeBand },
     fit: { height: values.fitHeight, width: values.fitWidth },
     initialOpacity: values.initialOpacity,
+    zoom: {
+      zoomEnd: values.zoomEnd,
+      zoomDepth: values.zoomDepth,
+      flyEnd: values.flyEnd,
+      flight: values.flight,
+      reach: values.reach,
+      fade: values.zoomFade,
+      jitter: values.jitter,
+    },
+    tunnel: { radiusMin: values.radiusMin, radiusMax: values.radiusMax, fogNear: values.fogNear, fogFar: values.fogFar, goalScale: values.goalScale },
     seed: values.seed,
   }
 

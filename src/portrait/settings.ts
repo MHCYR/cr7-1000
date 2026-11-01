@@ -1,6 +1,7 @@
 import { ASSEMBLY, SCATTER, type AssemblyTiming, fillDelays, goalDelays, scatterStart } from './assemble.ts'
 import { EDGE_DISPERSION, EDGE_SHRINK, FILL_SIZE, disperseEdges, fillSizes } from './fill.ts'
 import { EDGE_BAND, FILL_DENSITY, type Portrait, type PortraitOptions } from './sample.ts'
+import { FILL_ZOOM, TUNNEL, TUNNEL_FOG, TUNNEL_GOAL_SCALE, type FillZoom, fillOrder } from '../tunnel/tunnel.ts'
 
 // Every number that shapes the portrait, in one plain object: the dev controls edit it, and
 // it can be copied as a whole (JSON-safe, no functions). Defaults come from the constants of
@@ -26,6 +27,10 @@ export interface PortraitSettings {
   fit: { height: number; width: number }
   /** Opacity of a point while it is still scattered, before it fades to solid on landing. */
   initialOpacity: number
+  /** How the fill pixels come toward the camera on scroll (see FILL_ZOOM). */
+  zoom: FillZoom
+  /** Cylinder wall radii and distance fog, in world units. */
+  tunnel: { radiusMin: number; radiusMax: number; fogNear: number; fogFar: number; goalScale: number }
   /** One seed for the goal spread and every random buffer. */
   seed: number
 }
@@ -51,6 +56,8 @@ export const PORTRAIT_DEFAULTS: PortraitSettings = {
   sampling: { density: FILL_DENSITY.desktop, edgeBand: EDGE_BAND },
   fit: { ...FIT },
   initialOpacity: INITIAL_OPACITY,
+  zoom: { ...FILL_ZOOM },
+  tunnel: { radiusMin: TUNNEL.radius.min, radiusMax: TUNNEL.radius.max, fogNear: TUNNEL_FOG.near, fogFar: TUNNEL_FOG.far, goalScale: TUNNEL_GOAL_SCALE },
   seed: DEFAULT_SEED,
 }
 
@@ -79,15 +86,17 @@ export interface BufferSeeds {
   goalStart: number
   disperse: number
   fillSizes: number
+  fillOrder: number
 }
 
 /**
- * One seed per random buffer. The default seed gives 1 to 5, as the buffers always had; any
+ * One seed per random buffer. The default seed gives 1 to 5, as the buffers always had, and 6
+ * to the fly-out order; any
  * other seed moves every buffer to its own block of 8, so no two buffers or seeds share one.
  */
 export function bufferSeeds(seed: number): BufferSeeds {
   const base = (seed - DEFAULT_SEED) * 8
-  return { fillStart: base + 1, fillDelays: base + 2, goalStart: base + 3, disperse: base + 4, fillSizes: base + 5 }
+  return { fillStart: base + 1, fillDelays: base + 2, goalStart: base + 3, disperse: base + 4, fillSizes: base + 5, fillOrder: base + 6 }
 }
 
 /** The options for samplePortrait; changing any of them needs the photo read again. */
@@ -95,24 +104,26 @@ export function samplingOptions(settings: PortraitSettings): PortraitOptions {
   return { fillCount: settings.sampling.density, edgeBand: settings.sampling.edgeBand, seed: settings.seed }
 }
 
-/** The settings that shape the buffers; the rest (duration, opacity, fit) only reaches the shader. */
+/** The settings that shape the buffers; the rest (duration, opacity, fit, zoom timing) only reaches the shader. */
 export interface BufferSettings {
   assembly: Pick<AssemblyTiming, 'fillStagger' | 'goalsStart' | 'goalsStagger'>
   scatter: PortraitSettings['scatter']
   fill: PortraitSettings['fill']
+  zoom: Pick<FillZoom, 'jitter'>
   seed: number
 }
 
 /** Buffers derived from a sampled portrait; goal colors and sizes do not depend on the settings. */
 export function buildBuffers(portrait: Portrait, settings: BufferSettings) {
   const seeds = bufferSeeds(settings.seed)
-  const { assembly, scatter, fill } = settings
+  const { assembly, scatter, fill, zoom } = settings
   const fillPositions = disperseEdges(portrait.fill.positions, portrait.fill.edge, portrait.cellSize, seeds.disperse, fill.dispersion)
   return {
     fillPositions,
     fillStart: scatterStart(fillPositions, seeds.fillStart, scatter),
     fillDelays: fillDelays(portrait.fill.count, seeds.fillDelays, assembly.fillStagger),
     fillSizes: fillSizes(portrait.fill.edge, seeds.fillSizes, fill.size, fill.shrink),
+    fillOrder: fillOrder(fillPositions, seeds.fillOrder, zoom.jitter),
     goalStart: scatterStart(portrait.goals.positions, seeds.goalStart, scatter),
     goalDelays: goalDelays(portrait.goals.count, assembly),
   }

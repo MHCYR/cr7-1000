@@ -1,7 +1,7 @@
 import { useFrame } from '@react-three/fiber'
 import { type RefObject, useRef, useState } from 'react'
 import type { Points, ShaderMaterial } from 'three'
-import type { ScrollState } from '../tunnel/tunnel.ts'
+import { type FillZoom, type ScrollState, type TunnelFog, TUNNEL_FOG, fillOffset } from '../tunnel/tunnel.ts'
 import type { AnimationClock } from './animationClock.ts'
 import { assemblyFragmentShader, assemblyVertexShader } from './assemblyShader.ts'
 
@@ -19,8 +19,16 @@ interface AssemblingPointsProps {
   clock: RefObject<AnimationClock>
   /** Shared, damped scroll state; its progress drives the tunnel. */
   scroll: RefObject<ScrollState>
-  /** xyz tunnel positions in world units: with them the points fly to the tunnel, without them they fade out. */
+  /** xyz tunnel positions in world units: with them the points fly to the tunnel, without them they come toward the camera. */
   tunnel?: Float32Array
+  /** Distance fog for the goal walls. */
+  fog?: TunnelFog
+  /** Point size in the tunnel, as a multiple of its size in the portrait. */
+  tunnelScale?: number
+  /** How the points come toward the camera when there is no tunnel. */
+  zoom?: FillZoom
+  /** Fly-out order of each point toward the camera, in [0, 1]; needed with `zoom`. */
+  order?: Float32Array
   /** Base point side, in world units. */
   size: number
   /** Dark outline width, as a share of the point side. */
@@ -34,9 +42,9 @@ interface AssemblingPointsProps {
 
 /**
  * One THREE.Points (one draw call) whose points fly from `start` to `positions`, and on scroll
- * either to `tunnel` or out of sight.
+ * either to `tunnel` or toward the camera and past it.
  */
-export function AssemblingPoints({ positions, start, delays, colors, sizes, clock, scroll, tunnel, size, outline = 0, duration, initialOpacity, renderOrder }: AssemblingPointsProps) {
+export function AssemblingPoints({ positions, start, delays, colors, sizes, clock, scroll, tunnel, fog = TUNNEL_FOG, tunnelScale = 1, zoom, order, size, outline = 0, duration, initialOpacity, renderOrder }: AssemblingPointsProps) {
   const points = useRef<Points>(null)
   const material = useRef<ShaderMaterial>(null)
   // One object for the life of the component: the dev controls only change its values, so
@@ -49,6 +57,15 @@ export function AssemblingPoints({ positions, start, delays, colors, sizes, cloc
     uSize: { value: size },
     uOutline: { value: outline },
     uProgress: { value: 0 },
+    uZoomEnd: { value: 1 },
+    uZoomDepth: { value: 0 },
+    uFlyEnd: { value: 1 },
+    uFlight: { value: 1 },
+    uReach: { value: 0 },
+    uFade: { value: 1 },
+    uFogNear: { value: fog.near },
+    uFogFar: { value: fog.far },
+    uTunnelScale: { value: tunnelScale },
   }))
   // Fixed per mount: a tunnel is either given or not, so the shader compiles once.
   const [defines] = useState(() => (tunnel ? { TUNNEL: '' } : {}))
@@ -63,8 +80,21 @@ export function AssemblingPoints({ positions, start, delays, colors, sizes, cloc
     values.uOutline.value = outline
     values.uViewportHeight.value = state.size.height * state.viewport.dpr
     values.uProgress.value = scroll.current.progress
-    // Faded fill pixels cost nothing while the camera is in the tunnel.
-    if (points.current && !tunnel) points.current.visible = scroll.current.progress < 0.999
+    if (tunnel) {
+      values.uFogNear.value = fog.near
+      values.uFogFar.value = fog.far
+      values.uTunnelScale.value = tunnelScale
+      return
+    }
+    if (!zoom) return
+    values.uZoomEnd.value = zoom.zoomEnd
+    values.uZoomDepth.value = zoom.zoomDepth
+    values.uFlyEnd.value = zoom.flyEnd
+    values.uFlight.value = zoom.flight
+    values.uReach.value = zoom.reach
+    values.uFade.value = zoom.fade
+    // Order 1 flies last: once it is at reach, fill pixels cost nothing while the camera is in the tunnel.
+    if (points.current) points.current.visible = fillOffset(scroll.current.progress, 1, zoom) < zoom.reach
   })
 
   return (
@@ -77,6 +107,7 @@ export function AssemblingPoints({ positions, start, delays, colors, sizes, cloc
         <bufferAttribute attach="attributes-aColor" args={[colors, 3]} />
         <bufferAttribute attach="attributes-aSize" args={[sizes, 1]} />
         {tunnel && <bufferAttribute attach="attributes-aTunnel" args={[tunnel, 3]} />}
+        {order && <bufferAttribute attach="attributes-aOrder" args={[order, 1]} />}
       </bufferGeometry>
       <shaderMaterial
         ref={material}

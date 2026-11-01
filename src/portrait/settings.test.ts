@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { goalDelays, scatterStart, ASSEMBLY, SCATTER } from './assemble.ts'
 import { EDGE_DISPERSION, EDGE_SHRINK, FILL_SIZE, disperseEdges, fillSizes } from './fill.ts'
 import { EDGE_BAND, FILL_DENSITY, samplePortrait } from './sample.ts'
+import { FILL_ZOOM, fillOrder } from '../tunnel/tunnel.ts'
 import {
   PORTRAIT_DEFAULTS,
   type PortraitSettings,
@@ -30,6 +31,8 @@ describe('defaultSettings', () => {
       sampling: { density: FILL_DENSITY.desktop, edgeBand: EDGE_BAND },
       fit: { height: 0.88, width: 0.92 },
       initialOpacity: 0.35,
+      zoom: { ...FILL_ZOOM },
+      tunnel: { radiusMin: 3.5, radiusMax: 10, fogNear: 21, fogFar: 100, goalScale: 10 },
       seed: 1000,
     })
   })
@@ -63,7 +66,7 @@ describe('defaultSettings', () => {
 
 describe('bufferSeeds', () => {
   it('keeps the seeds the buffers always used for the default seed', () => {
-    expect(bufferSeeds(1000)).toEqual({ fillStart: 1, fillDelays: 2, goalStart: 3, disperse: 4, fillSizes: 5 })
+    expect(bufferSeeds(1000)).toEqual({ fillStart: 1, fillDelays: 2, goalStart: 3, disperse: 4, fillSizes: 5, fillOrder: 6 })
   })
 
   it('derives other seeds repeatably and without overlap between buffers or seeds', () => {
@@ -72,7 +75,7 @@ describe('bufferSeeds', () => {
       expect(bufferSeeds(seed)).toEqual(bufferSeeds(seed))
       for (const value of Object.values(bufferSeeds(seed))) seen.add(value)
     }
-    expect(seen.size).toBe(6 * 5)
+    expect(seen.size).toBe(6 * 6)
   })
 })
 
@@ -96,6 +99,7 @@ describe('buildBuffers', () => {
     expect(buffers.fillPositions).toEqual(dispersed)
     expect(buffers.fillStart).toEqual(scatterStart(dispersed, 1))
     expect(buffers.fillSizes).toEqual(fillSizes(fill.edge, 5))
+    expect(buffers.fillOrder).toEqual(fillOrder(dispersed, 6, FILL_ZOOM.jitter))
     expect(buffers.goalStart).toEqual(scatterStart(portrait.goals.positions, 3))
     expect(buffers.goalDelays).toEqual(goalDelays(4))
     expect(buffers.fillDelays).toHaveLength(3)
@@ -110,6 +114,7 @@ describe('buildBuffers', () => {
     settings.fill.size = { min: 1, max: 1 }
     settings.fill.shrink = 0
     settings.fill.dispersion = 0
+    settings.zoom.jitter = 0
 
     const buffers = buildBuffers(portrait, settings)
 
@@ -119,6 +124,7 @@ describe('buildBuffers', () => {
     expect(buffers.fillDelays.every((delay) => delay === 0)).toBe(true)
     expect(buffers.goalDelays[0]).toBe(5)
     expect(buffers.fillSizes.every((size) => size === 1)).toBe(true)
+    expect(buffers.fillOrder).toEqual(fillOrder(fill.positions, 6, 0))
     expect(buildBuffers(portrait, settings)).toEqual(buffers)
   })
 
@@ -128,7 +134,19 @@ describe('buildBuffers', () => {
     settings.assembly.duration = 9
     settings.initialOpacity = 1
     settings.fit = { height: 0.5, width: 0.5 }
+    settings.zoom = { ...settings.zoom, zoomEnd: 0.1, zoomDepth: 1, flyEnd: 0.9, flight: 0.05, reach: 9, fade: 3 }
 
+    settings.tunnel.fogNear = 2
+    settings.tunnel.fogFar = 10
+    settings.tunnel.goalScale = 5
+    expect(buildBuffers(portrait, settings)).toEqual(base)
+  })
+
+  it('ignores tunnel radii, which rebuild tunnel positions rather than portrait buffers', () => {
+    const settings = defaultSettings()
+    const base = buildBuffers(portrait, settings)
+    settings.tunnel.radiusMin = 3
+    settings.tunnel.radiusMax = 4
     expect(buildBuffers(portrait, settings)).toEqual(base)
   })
 
@@ -142,6 +160,7 @@ describe('buildBuffers', () => {
     expect(other.goalStart).not.toEqual(base.goalStart)
     expect(other.fillDelays).not.toEqual(base.fillDelays)
     expect(other.fillSizes).not.toEqual(base.fillSizes)
+    expect(other.fillOrder).not.toEqual(base.fillOrder)
     expect(other.fillPositions).not.toEqual(base.fillPositions)
     expect(other.goalDelays).toEqual(base.goalDelays)
   })
@@ -175,6 +194,8 @@ const custom: PortraitSettings = {
   sampling: { density: 400, edgeBand: 3 },
   fit: { height: 0.7, width: 0.81 },
   initialOpacity: 0.6,
+  zoom: { zoomEnd: 0.3, zoomDepth: 1.75, flyEnd: 0.8, flight: 0.15, reach: 7.25, fade: 0.8, jitter: 0.6 },
+  tunnel: { radiusMin: 2, radiusMax: 3, fogNear: 6, fogFar: 25, goalScale: 1.75 },
   seed: 4242,
 }
 
@@ -209,6 +230,22 @@ describe('serializeSettings', () => {
     width: 0.92,
   },
   initialOpacity: 0.35,
+  zoom: {
+    zoomEnd: 0.25,
+    zoomDepth: 2.5,
+    flyEnd: 0.75,
+    flight: 0.2,
+    reach: 5.5,
+    fade: 1.5,
+    jitter: 0.3,
+  },
+  tunnel: {
+    radiusMin: 3.5,
+    radiusMax: 10,
+    fogNear: 21,
+    fogFar: 100,
+    goalScale: 10,
+  },
   seed: 1000,
 }`)
   })
@@ -241,7 +278,7 @@ describe('SEED_MAX', () => {
   it('is the last seed whose buffer seeds never wrap onto another seed', () => {
     const wrapped = (seed: number) => Object.values(bufferSeeds(seed)).map((value) => value >>> 0)
     expect(SEED_MAX).toBe(2 ** 29 - 1)
-    expect(new Set([...wrapped(0), ...wrapped(1), ...wrapped(SEED_MAX - 1), ...wrapped(SEED_MAX)]).size).toBe(4 * 5)
+    expect(new Set([...wrapped(0), ...wrapped(1), ...wrapped(SEED_MAX - 1), ...wrapped(SEED_MAX)]).size).toBe(4 * 6)
     expect(wrapped(SEED_MAX + 1)).toEqual(wrapped(0))
   })
 })
