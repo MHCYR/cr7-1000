@@ -1,6 +1,7 @@
 import { ASSEMBLY, SCATTER, type AssemblyTiming, fillDelays, goalDelays, scatterStart } from './assemble.ts'
 import { EDGE_DISPERSION, EDGE_SHRINK, FILL_SIZE, disperseEdges, fillSizes } from './fill.ts'
 import { EDGE_BAND, FILL_DENSITY, type Portrait, type PortraitOptions } from './sample.ts'
+import { FILL_ZOOM, type FillZoom } from '../tunnel/tunnel.ts'
 
 // Every number that shapes the portrait, in one plain object: the dev controls edit it, and
 // it can be copied as a whole (JSON-safe, no functions). Defaults come from the constants of
@@ -26,6 +27,8 @@ export interface PortraitSettings {
   fit: { height: number; width: number }
   /** Opacity of a point while it is still scattered, before it fades to solid on landing. */
   initialOpacity: number
+  /** How the fill pixels come toward the camera on scroll (see FILL_ZOOM). */
+  zoom: FillZoom
   /** One seed for the goal spread and every random buffer. */
   seed: number
 }
@@ -51,6 +54,7 @@ export const PORTRAIT_DEFAULTS: PortraitSettings = {
   sampling: { density: FILL_DENSITY.desktop, edgeBand: EDGE_BAND },
   fit: { ...FIT },
   initialOpacity: INITIAL_OPACITY,
+  zoom: { ...FILL_ZOOM },
   seed: DEFAULT_SEED,
 }
 
@@ -95,7 +99,7 @@ export function samplingOptions(settings: PortraitSettings): PortraitOptions {
   return { fillCount: settings.sampling.density, edgeBand: settings.sampling.edgeBand, seed: settings.seed }
 }
 
-/** The settings that shape the buffers; the rest (duration, opacity, fit) only reaches the shader. */
+/** The settings that shape the buffers; the rest (duration, opacity, fit, zoom) only reaches the shader. */
 export interface BufferSettings {
   assembly: Pick<AssemblyTiming, 'fillStagger' | 'goalsStart' | 'goalsStagger'>
   scatter: PortraitSettings['scatter']

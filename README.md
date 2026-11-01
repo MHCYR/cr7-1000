@@ -24,11 +24,11 @@ pnpm preview   # sirve el build de dist/
 
 ## Ajustar el retrato en desarrollo
 
-Con `pnpm dev` aparece un panel Leva con tres grupos: **Animación**, **Píxeles de relleno y bordes** y **Encuadre y semillas**. Los valores iniciales salen de `PORTRAIT_DEFAULTS` en `src/portrait/settings.ts`; el panel no guarda configuraciones y una recarga completa restaura esos valores.
+Con `pnpm dev` aparece un panel Leva con cuatro grupos: **Animación**, **Píxeles de relleno y bordes**, **Entrada al túnel** y **Encuadre y semillas**. Los valores iniciales salen de `PORTRAIT_DEFAULTS` en `src/portrait/settings.ts`; el panel no guarda configuraciones y una recarga completa restaura esos valores.
 
 | Cambio | Trabajo que realiza |
 |---|---|
-| Duración, opacidad inicial y ocupación del viewport | Actualiza uniforms o escala, sin regenerar puntos |
+| Duración, opacidad inicial, ocupación del viewport y entrada al túnel | Actualiza uniforms o escala, sin regenerar puntos |
 | Escalonados, arranque de goles, dispersión inicial, tamaños, dispersión y encogimiento del borde | Recalcula buffers sin leer otra vez la foto |
 | Densidad, franja de borde y semilla general | Ejecuta `samplePortrait` con los píxeles de la foto ya decodificada; la semilla también cambia los buffers aleatorios |
 
@@ -40,7 +40,9 @@ Leva es una dependencia de desarrollo y se importa dinámicamente solo bajo `imp
 
 ## Túnel
 
-El scroll de la página mueve la escena; la cámara no se controla de otra forma. El primer viewport de scroll lleva el progreso de 0 a 1: los píxeles de gol vuelan del retrato al túnel y los píxeles de relleno se desvanecen. El resto del scroll mueve la cámara en Z desde el retrato hasta el gol 1000. Al volver arriba, el retrato se rearma.
+El scroll de la página mueve la escena; la cámara no se controla de otra forma. El primer viewport de scroll lleva el progreso de 0 a 1: los píxeles de gol vuelan del retrato al túnel mientras la cámara entra en la imagen. El resto del scroll mueve la cámara en Z desde el retrato hasta el gol 1000. Al volver arriba, el retrato se rearma.
+
+Para entrar en la imagen, los píxeles de relleno avanzan juntos hacia la cámara (+Z) mientras ella sigue quieta. La perspectiva los agranda y los abre desde el centro de la pantalla; cada píxel se desvanece al acercarse a la cámara y desaparece al pasarla. El zoom termina antes que el vuelo de los goles (en el progreso `end`), así que los goles terminan de alinearse con el relleno ya fuera de la vista. `FILL_ZOOM`, en `src/tunnel/tunnel.ts`, fija `end`, `travel` (cuánto avanza el relleno, más que la distancia a la cámara) y `fade` (desde qué distancia a la cámara se desvanece); se ajustan en el grupo **Entrada al túnel** del panel.
 
 En el túnel, el gol número n está en `z = -n × separación`, con X/Y al azar (semilla fija) en un anillo alrededor del eje de la cámara, para que la cámara pase junto a los goles. El gol actual es `round(-z / separación)` de la cámara: 0 antes de entrar al túnel y nunca más que el último gol. Las constantes (`separation`, `radius`, `cameraStart` y `pixelsPerGoal`) están en `TUNNEL`, en `src/tunnel/tunnel.ts`; la interpolación ocurre en el shader, sin rerenders de React por frame.
 

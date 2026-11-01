@@ -32,6 +32,11 @@ export default function DevControls({ children }: DevControlsProps) {
       dispersion: { label: 'Dispersión borde', value: defaults.fill.dispersion, min: 0, max: 20, step: 0.1 },
       shrink: { label: 'Encogimiento borde', value: defaults.fill.shrink, min: 0, max: 1, step: 0.01 },
     }),
+    'Entrada al túnel': folder({
+      zoomEnd: { label: 'Fin del zoom (progreso)', value: defaults.zoom.end, min: 0.05, max: 1, step: 0.01 },
+      zoomTravel: { label: 'Recorrido del relleno', value: defaults.zoom.travel, min: 0, max: 20, step: 0.1 },
+      zoomFade: { label: 'Distancia de fundido', value: defaults.zoom.fade, min: 0.05, max: 5, step: 0.05 },
+    }),
     'Encuadre y semillas': folder({
       fitHeight: { label: 'Ocupación alto', value: defaults.fit.height, min: 0.1, max: 1, step: 0.01 },
       fitWidth: { label: 'Ocupación ancho', value: defaults.fit.width, min: 0.1, max: 1, step: 0.01 },
@@ -46,6 +51,7 @@ export default function DevControls({ children }: DevControlsProps) {
     sampling: { density: values.density, edgeBand: values.edgeBand },
     fit: { height: values.fitHeight, width: values.fitWidth },
     initialOpacity: values.initialOpacity,
+    zoom: { end: values.zoomEnd, travel: values.zoomTravel, fade: values.zoomFade },
     seed: values.seed,
   }
 

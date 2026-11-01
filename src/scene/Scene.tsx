@@ -33,10 +33,11 @@ interface SceneProps {
 
 /**
  * Prototype B: the portrait of fill and goal pixels, built on entry, and the tunnel the goal
- * pixels fly to on scroll while the fill fades and the camera moves along Z. Each change of
+ * pixels fly to on scroll while the fill comes toward the camera and past it, and then the
+ * camera moves along Z. Each change of
  * the settings does the least work it needs: the photo is decoded once, sampled again only
  * for the sampling settings and the seed, and its buffers are rebuilt only for the settings
- * that shape them. Duration, initial opacity and fit just update the shader and the scale.
+ * that shape them. Duration, initial opacity, fit and zoom just update the shader and the scale.
  */
 export function Scene({ settings = DEFAULT_SETTINGS, restart = 0 }: SceneProps) {
   const [image, setImage] = useState<ImageData | null>(null)
@@ -133,6 +134,7 @@ function PortraitCloud({ portrait, settings, restart }: { portrait: Portrait; se
         sizes={buffers.fillSizes}
         clock={clock}
         scroll={scroll}
+        zoom={settings.zoom}
         size={portrait.cellSize * scale}
         duration={assembly.duration}
         initialOpacity={initialOpacity}

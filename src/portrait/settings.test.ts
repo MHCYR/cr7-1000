@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { goalDelays, scatterStart, ASSEMBLY, SCATTER } from './assemble.ts'
 import { EDGE_DISPERSION, EDGE_SHRINK, FILL_SIZE, disperseEdges, fillSizes } from './fill.ts'
 import { EDGE_BAND, FILL_DENSITY, samplePortrait } from './sample.ts'
+import { FILL_ZOOM } from '../tunnel/tunnel.ts'
 import {
   PORTRAIT_DEFAULTS,
   type PortraitSettings,
@@ -30,6 +31,7 @@ describe('defaultSettings', () => {
       sampling: { density: FILL_DENSITY.desktop, edgeBand: EDGE_BAND },
       fit: { height: 0.88, width: 0.92 },
       initialOpacity: 0.35,
+      zoom: { ...FILL_ZOOM },
       seed: 1000,
     })
   })
@@ -175,6 +177,7 @@ const custom: PortraitSettings = {
   sampling: { density: 400, edgeBand: 3 },
   fit: { height: 0.7, width: 0.81 },
   initialOpacity: 0.6,
+  zoom: { end: 0.5, travel: 7.25, fade: 0.8 },
   seed: 4242,
 }
 
@@ -209,6 +212,11 @@ describe('serializeSettings', () => {
     width: 0.92,
   },
   initialOpacity: 0.35,
+  zoom: {
+    end: 0.65,
+    travel: 5.5,
+    fade: 1.5,
+  },
   seed: 1000,
 }`)
   })

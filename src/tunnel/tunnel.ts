@@ -1,7 +1,9 @@
 // Act two of prototype B (docs/SPEC.md): the tunnel. Every goal pixel has a second position,
 // goal number n at z = -n × separation, and page scroll first flies the goal pixels there
 // (progress 0 → 1) and then moves the camera along Z, past the goals from 1 to the last.
-// All lengths are world units; the GPU does the interpolation (src/scene/assemblyShader.ts).
+// Meanwhile the fill pixels come toward the camera and pass beside it, so the camera enters
+// the image instead of watching it fade. All lengths are world units; the GPU does the
+// interpolation (src/scene/assemblyShader.ts).
 
 import { createRandom } from '../lib/random.ts'
 
@@ -15,6 +17,18 @@ export const TUNNEL = {
   /** Scroll, in CSS pixels, that moves the camera from one goal to the next. */
   pixelsPerGoal: 24,
 } as const
+
+/** How the fill pixels come toward the camera while the goals fly to the tunnel. */
+export const FILL_ZOOM = {
+  /** Progress at which every fill pixel is past the camera; below 1, the goals finish aligning in sight. */
+  end: 0.65,
+  /** How far toward the camera the fill moves, from the portrait: past cameraStart, so it ends behind the camera. */
+  travel: TUNNEL.cameraStart + 0.5,
+  /** Distance to the camera from which a fill pixel starts fading out, so it never fills the screen. */
+  fade: 1.5,
+} as const
+
+export type FillZoom = { -readonly [K in keyof typeof FILL_ZOOM]: number }
 
 /** Seed of the tunnel X/Y spread. */
 export const TUNNEL_SEED = 4
@@ -49,6 +63,29 @@ export function tunnelScroll(goalCount: number, tunnel = TUNNEL): number {
 /** Scroll, in CSS pixels, from the portrait to the last goal: one viewport, then the tunnel. */
 export function scrollHeight(viewportHeight: number, goalCount: number, tunnel = TUNNEL): number {
   return viewportHeight + tunnelScroll(goalCount, tunnel)
+}
+
+/** Hermite smoothstep, as in GLSL: 0 at or below `edge0`, 1 at or above `edge1`. */
+function smoothstep(edge0: number, edge1: number, x: number): number {
+  const t = Math.min(Math.max((x - edge0) / (edge1 - edge0), 0), 1)
+  return t * t * (3 - 2 * t)
+}
+
+/**
+ * How far toward the camera (+Z) the fill pixels are at this progress: 0 with the portrait
+ * assembled, `travel` from `end` on. Every pixel moves the same, so the perspective grows them
+ * and spreads them from the center of the screen, as if the camera went into the photo.
+ */
+export function fillZoom(progress: number, { end, travel }: Pick<FillZoom, 'end' | 'travel'> = FILL_ZOOM): number {
+  return smoothstep(0, end, progress) * travel
+}
+
+/**
+ * Opacity factor of a fill pixel at `depth` in front of the camera: 1 from `fade` on, 0 at the
+ * camera and behind it. The vertex shader applies the same formula (src/scene/assemblyShader.ts).
+ */
+export function nearFade(depth: number, fade: number = FILL_ZOOM.fade): number {
+  return smoothstep(0, fade, depth)
 }
 
 export interface ScrollState {

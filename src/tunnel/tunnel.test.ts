@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { TUNNEL, currentGoal, scrollHeight, scrollState, tunnelPositions } from './tunnel.ts'
+import { FILL_ZOOM, TUNNEL, currentGoal, fillZoom, nearFade, scrollHeight, scrollState, tunnelPositions } from './tunnel.ts'
 
 const { separation } = TUNNEL
 
@@ -82,5 +82,53 @@ describe('scrollState', () => {
     scrollState(bottom, viewport, goals)
     expect(scrollState(0, viewport, goals)).toEqual({ progress: 0, cameraZ: TUNNEL.cameraStart })
     expect(scrollState(-40, viewport, goals)).toEqual({ progress: 0, cameraZ: TUNNEL.cameraStart })
+  })
+})
+
+describe('fillZoom', () => {
+  const zoom = { end: 0.6, travel: 6 }
+
+  it('leaves the portrait in place at the top of the page', () => {
+    expect(fillZoom(0, zoom)).toBe(0)
+    expect(fillZoom(-0.2, zoom)).toBe(0)
+  })
+
+  it('brings the fill pixels toward the camera as the goals fly, so the camera enters the image', () => {
+    const steps = [0.1, 0.2, 0.3, 0.4, 0.5].map((progress) => fillZoom(progress, zoom))
+    for (let i = 1; i < steps.length; i++) expect(steps[i]).toBeGreaterThan(steps[i - 1])
+    expect(fillZoom(0.3, zoom)).toBeCloseTo(3)
+  })
+
+  it('finishes before the goals land: from `end` on, the fill sits `travel` past the portrait', () => {
+    expect(fillZoom(0.6, zoom)).toBe(6)
+    expect(fillZoom(0.8, zoom)).toBe(6)
+    expect(fillZoom(1, zoom)).toBe(6)
+  })
+
+  it('is reversible: the same progress always gives the same offset', () => {
+    fillZoom(1, zoom)
+    expect(fillZoom(0.3, zoom)).toBe(fillZoom(0.3, zoom))
+    expect(fillZoom(0, zoom)).toBe(0)
+  })
+
+  it('by default takes every fill pixel past the camera before the goals land', () => {
+    expect(FILL_ZOOM.end).toBeLessThan(1)
+    expect(fillZoom(FILL_ZOOM.end, FILL_ZOOM)).toBeGreaterThan(TUNNEL.cameraStart)
+  })
+})
+
+describe('nearFade', () => {
+  const fade = 1.5
+
+  it('keeps a fill pixel solid while it is farther than `fade` from the camera', () => {
+    expect(nearFade(1.5, fade)).toBe(1)
+    expect(nearFade(5, fade)).toBe(1)
+  })
+
+  it('fades it out as it reaches the camera, and hides it behind the camera', () => {
+    expect(nearFade(1, fade)).toBeGreaterThan(nearFade(0.5, fade))
+    expect(nearFade(0.75, fade)).toBeCloseTo(0.5)
+    expect(nearFade(0, fade)).toBe(0)
+    expect(nearFade(-1, fade)).toBe(0)
   })
 })
