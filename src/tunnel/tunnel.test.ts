@@ -38,7 +38,7 @@ describe('tunnelPositions', () => {
   })
 
   it('spreads X/Y at random on a ring around the camera path, so the camera passes beside every goal', () => {
-    expect(TUNNEL.radius).toEqual({ min: 2, max: 3.5 })
+    expect(TUNNEL.radius).toEqual({ min: 3.5, max: 10 })
     for (let i = 0; i < positions.length; i += 3) {
       const radius = Math.hypot(positions[i], positions[i + 1])
       expect(radius).toBeGreaterThanOrEqual(TUNNEL.radius.min - 1e-6)
