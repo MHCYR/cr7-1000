@@ -9,13 +9,13 @@ import { createRandom } from '../lib/random.ts'
 /** Timing in seconds. */
 export const ASSEMBLY = {
   /** How long one point takes to fly from its start to the portrait. */
-  duration: 1,
+  duration: 1.6,
   /** Fill pixels start at random within this window. */
-  fillStagger: 0.8,
+  fillStagger: 1.3,
   /** When goal 1 starts flying. */
-  goalsStart: 0.6,
+  goalsStart: 1,
   /** Time between goal 1 and the last goal pixel starting to fly. */
-  goalsStagger: 0.9,
+  goalsStagger: 1.4,
 } as const
 
 /** When the last point lands; from then on the portrait is still. */
