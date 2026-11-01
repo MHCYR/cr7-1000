@@ -1,0 +1,31 @@
+.portrait-controls {
+  position: fixed;
+  z-index: 10;
+  top: 12px;
+  right: 12px;
+  width: min(340px, calc(100vw - 24px));
+  max-height: calc(100vh - 24px);
+  overflow-y: auto;
+  border-radius: 8px;
+  background: #181c20;
+}
+
+.portrait-controls-actions {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  font-size: 12px;
+}
+
+.portrait-controls-actions button {
+  padding: 8px;
+  color: #f2f2f2;
+  background: #303741;
+  border: 1px solid #596372;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.portrait-controls-actions output:empty {
+  display: none;
+}

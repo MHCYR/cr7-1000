@@ -39,17 +39,38 @@ export const INITIAL_OPACITY = 0.35
 /** Seed of the default portrait: it spreads the goals and gives the buffers their seeds 1 to 5. */
 export const DEFAULT_SEED = 1000
 
+/** Largest integer seed before the 8-slot buffer blocks repeat as uint32. */
+export const SEED_MAX = 2 ** 29 - 1
+
 // Choosing the density per device is #7; desktop for now.
+// Replace this declaration with “Copiar valores” to adopt a tuned portrait.
+export const PORTRAIT_DEFAULTS: PortraitSettings = {
+  assembly: { ...ASSEMBLY },
+  scatter: { ...SCATTER },
+  fill: { size: { ...FILL_SIZE }, dispersion: EDGE_DISPERSION, shrink: EDGE_SHRINK },
+  sampling: { density: FILL_DENSITY.desktop, edgeBand: EDGE_BAND },
+  fit: { ...FIT },
+  initialOpacity: INITIAL_OPACITY,
+  seed: DEFAULT_SEED,
+}
+
+/** Independent copies: editing a live configuration never changes source defaults. */
 export function defaultSettings(): PortraitSettings {
-  return {
-    assembly: { ...ASSEMBLY },
-    scatter: { ...SCATTER },
-    fill: { size: { ...FILL_SIZE }, dispersion: EDGE_DISPERSION, shrink: EDGE_SHRINK },
-    sampling: { density: FILL_DENSITY.desktop, edgeBand: EDGE_BAND },
-    fit: { ...FIT },
-    initialOpacity: INITIAL_OPACITY,
-    seed: DEFAULT_SEED,
+  return structuredClone(PORTRAIT_DEFAULTS)
+}
+
+/** Complete TypeScript declaration, ready to paste over PORTRAIT_DEFAULTS above. */
+export function serializeSettings(settings: PortraitSettings): string {
+  function source(value: object | number, depth: number): string {
+    if (typeof value === 'number') {
+      if (!Number.isFinite(value)) throw new RangeError('Portrait settings must be finite numbers')
+      return String(value)
+    }
+    const indent = '  '.repeat(depth)
+    const entries = Object.entries(value).map(([key, child]) => `${indent}  ${key}: ${source(child, depth + 1)},`)
+    return `{\n${entries.join('\n')}\n${indent}}`
   }
+  return `export const PORTRAIT_DEFAULTS: PortraitSettings = ${source(settings, 0)}`
 }
 
 export interface BufferSeeds {

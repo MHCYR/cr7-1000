@@ -1,8 +1,17 @@
 import { describe, expect, it } from 'vitest'
 import { goalDelays, scatterStart, ASSEMBLY, SCATTER } from './assemble.ts'
 import { EDGE_DISPERSION, EDGE_SHRINK, FILL_SIZE, disperseEdges, fillSizes } from './fill.ts'
-import { EDGE_BAND, FILL_DENSITY } from './sample.ts'
-import { bufferSeeds, buildBuffers, defaultSettings, samplingOptions } from './settings.ts'
+import { EDGE_BAND, FILL_DENSITY, samplePortrait } from './sample.ts'
+import {
+  PORTRAIT_DEFAULTS,
+  type PortraitSettings,
+  SEED_MAX,
+  bufferSeeds,
+  buildBuffers,
+  defaultSettings,
+  samplingOptions,
+  serializeSettings,
+} from './settings.ts'
 
 const fill = {
   count: 3,
@@ -37,6 +46,18 @@ describe('defaultSettings', () => {
     expect(defaultSettings().fill.size.max).toBe(FILL_SIZE.max)
     expect(defaultSettings().assembly.duration).toBe(ASSEMBLY.duration)
     expect(FILL_SIZE.max).toBe(1.2)
+  })
+
+  it('is the canonical PORTRAIT_DEFAULTS, and editing a copy leaves it untouched', () => {
+    expect(defaultSettings()).toEqual(PORTRAIT_DEFAULTS)
+    expect(defaultSettings()).not.toBe(PORTRAIT_DEFAULTS)
+
+    const edited = defaultSettings()
+    edited.scatter.x = 9
+    edited.fill.size.min = 9
+    expect(PORTRAIT_DEFAULTS.scatter.x).toBe(SCATTER.x)
+    expect(PORTRAIT_DEFAULTS.fill.size.min).toBe(FILL_SIZE.min)
+    expect(SCATTER.x).toBe(2.6)
   })
 })
 
@@ -123,5 +144,104 @@ describe('buildBuffers', () => {
     expect(other.fillSizes).not.toEqual(base.fillSizes)
     expect(other.fillPositions).not.toEqual(base.fillPositions)
     expect(other.goalDelays).toEqual(base.goalDelays)
+  })
+})
+
+// A disk of changing colors: big enough for 1000 goals plus the fill, and different at every cell.
+const photo = (() => {
+  const size = 100
+  const data = new Uint8ClampedArray(size * size * 4)
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const inside = (x - 50) ** 2 + (y - 50) ** 2 < 45 ** 2
+      data.set([x * 2, y * 2, (x * y) % 256, inside ? 255 : 0], (y * size + x) * 4)
+    }
+  }
+  return { width: size, height: size, data }
+})()
+
+const DECLARATION = 'export const PORTRAIT_DEFAULTS: PortraitSettings = '
+
+/** What pasting the declaration over the constant in settings.ts gives: the value it declares. */
+function pasted(source: string): PortraitSettings {
+  expect(source.startsWith(DECLARATION)).toBe(true)
+  return new Function(`return ${source.slice(DECLARATION.length)}`)()
+}
+
+const custom: PortraitSettings = {
+  assembly: { duration: 2.35, fillStagger: 0.7, goalsStart: 1.15, goalsStagger: 2.05 },
+  scatter: { x: 3.1, y: 0.9, z: 4.25 },
+  fill: { size: { min: 0.35, max: 0.8 }, dispersion: 3.3, shrink: 0.15 },
+  sampling: { density: 400, edgeBand: 3 },
+  fit: { height: 0.7, width: 0.81 },
+  initialOpacity: 0.6,
+  seed: 4242,
+}
+
+describe('serializeSettings', () => {
+  it('writes the exact declaration to paste over PORTRAIT_DEFAULTS in settings.ts', () => {
+    expect(serializeSettings(defaultSettings())).toBe(`${DECLARATION}{
+  assembly: {
+    duration: 1.6,
+    fillStagger: 1.3,
+    goalsStart: 1,
+    goalsStagger: 1.4,
+  },
+  scatter: {
+    x: 2.6,
+    y: 1.6,
+    z: 2.5,
+  },
+  fill: {
+    size: {
+      min: 0.5,
+      max: 1.2,
+    },
+    dispersion: 6,
+    shrink: 0.5,
+  },
+  sampling: {
+    density: 50000,
+    edgeBand: 8,
+  },
+  fit: {
+    height: 0.88,
+    width: 0.92,
+  },
+  initialOpacity: 0.35,
+  seed: 1000,
+}`)
+  })
+
+  it('pasted back, rebuilds the same portrait: same sample and same buffers', () => {
+    const back = pasted(serializeSettings(custom))
+    expect(back).toEqual(custom)
+
+    const portrait = samplePortrait(photo, samplingOptions(custom))
+    const again = samplePortrait(photo, samplingOptions(back))
+    expect(again).toEqual(portrait)
+    expect(buildBuffers(again, back)).toEqual(buildBuffers(portrait, custom))
+    // The custom values really change the portrait, so the comparison above proves something.
+    expect(portrait.fill.count).not.toBe(samplePortrait(photo, samplingOptions(defaultSettings())).fill.count)
+    expect(buildBuffers(portrait, custom).fillSizes).not.toEqual(buildBuffers(portrait, defaultSettings()).fillSizes)
+  })
+
+  it('keeps fractions exactly, as a number JS reads back unchanged', () => {
+    const settings = { ...custom, initialOpacity: 0.1 + 0.2, seed: SEED_MAX }
+    expect(pasted(serializeSettings(settings))).toEqual(settings)
+  })
+
+  it('refuses a value that cannot be written as a number, instead of writing a wrong portrait', () => {
+    const broken = { ...custom, initialOpacity: Number.NaN }
+    expect(() => serializeSettings(broken)).toThrow(RangeError)
+  })
+})
+
+describe('SEED_MAX', () => {
+  it('is the last seed whose buffer seeds never wrap onto another seed', () => {
+    const wrapped = (seed: number) => Object.values(bufferSeeds(seed)).map((value) => value >>> 0)
+    expect(SEED_MAX).toBe(2 ** 29 - 1)
+    expect(new Set([...wrapped(0), ...wrapped(1), ...wrapped(SEED_MAX - 1), ...wrapped(SEED_MAX)]).size).toBe(4 * 5)
+    expect(wrapped(SEED_MAX + 1)).toEqual(wrapped(0))
   })
 })
