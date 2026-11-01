@@ -111,7 +111,7 @@ La versión A del canvas (`project/CardFull.dc.html`) mostraba siempre todos los
 ## Comportamiento en el túnel
 
 - **Tamaño de referencia:** las medidas de arriba son para una card a la distancia de lectura (la más cercana a la cámara). Las cards más lejanas se ven más pequeñas por la perspectiva y desaparecen en la niebla, como los puntos de hoy.
-- **Cards y puntos:** solo los 150 goles más cercanos a la cámara son cards; los de más allá, hasta el fondo de la niebla, siguen siendo puntos, y en el borde las cards se funden en puntos. Solo las 12 cards más cercanas, y la abierta, desenfocan el túnel con `glass-blur`: cientos de capas con desenfoque harían el scroll lento.
+- **Cards y puntos:** solo los 48 goles más cercanos a la cámara son cards; los de más allá, hasta el fondo de la niebla, siguen siendo puntos, y en el borde las cards se funden en puntos. Solo las 12 cards más cercanas, y la abierta, desenfocan el túnel con `glass-blur`: cientos de capas con desenfoque harían el scroll lento.
 - **Hover:** solo se abre una card a la vez. Al salir el cursor vuelve al reposo. Abrir una card no mueve a las demás.
 - **Foco:** cada card es enfocable (`tabindex="0"`), se abre con el foco igual que con el hover y muestra un anillo `focus` de 2px con 2px de separación. Su `aria-label` resume el gol: «Gol 975, Al-Nassr contra Al-Taawoun, 29 may 2026» o «Gol 988, por marcar».
 - **Táctil:** sin hover, la card se abre con un toque y se cierra al tocar fuera o al abrir otra.

@@ -14,7 +14,7 @@ export const READING_DISTANCE = 8
 export const CARD_REVEAL = { start: 0.8, end: 1 } as const
 
 /** Most goal cards mounted at once: the goals ahead of them stay as goal pixels. */
-export const CARD_WINDOW = 150
+export const CARD_WINDOW = 48
 
 /**
  * Depth, in world units, over which the farthest cards fade into goal pixels. It ends short of
