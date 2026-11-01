@@ -17,7 +17,7 @@ export const FILL_DENSITY = { desktop: 50_000, mobile: 20_000 } as const
 export const GOAL_PIXELS = 1000
 
 /** Fill pixels closer than this many grid cells to the edge of the figure are on its edge band. */
-export const EDGE_BAND = 5
+export const EDGE_BAND = 8
 
 export interface PortraitOptions {
   /** Approximate number of fill pixels. */

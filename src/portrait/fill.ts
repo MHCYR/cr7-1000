@@ -9,7 +9,7 @@ import { createRandom } from '../lib/random.ts'
 export const FILL_SIZE = { min: 0.5, max: 1.2 } as const
 
 /** Farthest an edge pixel scatters from its cell, in grid cells. */
-export const EDGE_DISPERSION = 3
+export const EDGE_DISPERSION = 6
 
 /** How much the fill pixels on the very edge shrink (0 = not at all, 1 = to nothing). */
 const EDGE_SHRINK = 0.5
