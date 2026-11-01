@@ -41,6 +41,13 @@ export default function DevControls({ children }: DevControlsProps) {
       jitter: { label: 'Azar del orden', value: defaults.zoom.jitter, min: 0, max: 1, step: 0.01 },
       zoomFade: { label: 'Distancia de fundido', value: defaults.zoom.fade, min: 0.05, max: 5, step: 0.05 },
     }),
+    'Túnel de goles': folder({
+      radiusMin: { label: 'Radio mín.', value: defaults.tunnel.radiusMin, min: 0.1, max: 10, step: 0.1 },
+      radiusMax: { label: 'Radio máx.', value: defaults.tunnel.radiusMax, min: 0.1, max: 10, step: 0.1 },
+      fogNear: { label: 'Niebla cerca', value: defaults.tunnel.fogNear, min: 0, max: 100, step: 0.5 },
+      fogFar: { label: 'Niebla lejos', value: defaults.tunnel.fogFar, min: 0.5, max: 100, step: 0.5 },
+      goalScale: { label: 'Tamaño de gol en el túnel', value: defaults.tunnel.goalScale, min: 0.5, max: 10, step: 0.1 },
+    }),
     'Encuadre y semillas': folder({
       fitHeight: { label: 'Ocupación alto', value: defaults.fit.height, min: 0.1, max: 1, step: 0.01 },
       fitWidth: { label: 'Ocupación ancho', value: defaults.fit.width, min: 0.1, max: 1, step: 0.01 },
@@ -64,6 +71,7 @@ export default function DevControls({ children }: DevControlsProps) {
       fade: values.zoomFade,
       jitter: values.jitter,
     },
+    tunnel: { radiusMin: values.radiusMin, radiusMax: values.radiusMax, fogNear: values.fogNear, fogFar: values.fogFar, goalScale: values.goalScale },
     seed: values.seed,
   }
 

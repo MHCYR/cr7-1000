@@ -9,9 +9,9 @@ import { createRandom } from '../lib/random.ts'
 
 export const TUNNEL = {
   /** Distance in Z between two consecutive goals. */
-  separation: 0.5,
+  separation: 0.15,
   /** Goals sit on a ring around the camera path, so the camera passes beside them. */
-  radius: { min: 0.6, max: 2.2 },
+  radius: { min: 2, max: 3.5 },
   /** Camera Z while the portrait is on screen. */
   cameraStart: 5,
   /** Scroll, in CSS pixels, that moves the camera from one goal to the next. */
@@ -40,13 +40,21 @@ export const FILL_ZOOM = {
   jitter: 0.3,
 } as const
 
+/** Distance fog on the goal walls, in world units in front of the camera; near stays past cameraStart. */
+export const TUNNEL_FOG = { near: 8, far: 30 } as const
+
+/** How many times bigger a goal pixel is in the tunnel than in the portrait. */
+export const TUNNEL_GOAL_SCALE = 2.5
+
+export interface TunnelFog { near: number; far: number }
+
 export type FillZoom = { -readonly [K in keyof typeof FILL_ZOOM]: number }
 
 /** Seed of the tunnel X/Y spread. */
 export const TUNNEL_SEED = 4
 
 /** Tunnel positions of `count` goals in chronological order: index i is goal number i + 1. */
-export function tunnelPositions(count: number, seed: number = TUNNEL_SEED, tunnel = TUNNEL): Float32Array {
+export function tunnelPositions(count: number, seed: number = TUNNEL_SEED, tunnel: { separation: number; radius: { min: number; max: number } } = TUNNEL): Float32Array {
   const random = createRandom(seed)
   const { separation, radius } = tunnel
   const positions = new Float32Array(count * 3)
@@ -81,6 +89,15 @@ export function scrollHeight(viewportHeight: number, goalCount: number, tunnel =
 function smoothstep(edge0: number, edge1: number, x: number): number {
   const t = Math.min(Math.max((x - edge0) / (edge1 - edge0), 0), 1)
   return t * t * (3 - 2 * t)
+}
+
+/**
+ * Opacity factor of a goal pixel at `depth` in front of the camera: 1 up to `near`, 0 from
+ * `far` on. It also hides the goals while they fly deep into the tunnel, so they never pile up
+ * at the center of the screen; the assembled portrait, closer than `near`, is untouched.
+ */
+export function tunnelFade(depth: number, fog: TunnelFog = TUNNEL_FOG): number {
+  return 1 - smoothstep(fog.near, fog.far, depth)
 }
 
 /**

@@ -32,6 +32,7 @@ describe('defaultSettings', () => {
       fit: { height: 0.88, width: 0.92 },
       initialOpacity: 0.35,
       zoom: { ...FILL_ZOOM },
+      tunnel: { radiusMin: 2, radiusMax: 3.5, fogNear: 8, fogFar: 30, goalScale: 2.5 },
       seed: 1000,
     })
   })
@@ -135,6 +136,17 @@ describe('buildBuffers', () => {
     settings.fit = { height: 0.5, width: 0.5 }
     settings.zoom = { ...settings.zoom, zoomEnd: 0.1, zoomDepth: 1, flyEnd: 0.9, flight: 0.05, reach: 9, fade: 3 }
 
+    settings.tunnel.fogNear = 2
+    settings.tunnel.fogFar = 10
+    settings.tunnel.goalScale = 5
+    expect(buildBuffers(portrait, settings)).toEqual(base)
+  })
+
+  it('ignores tunnel radii, which rebuild tunnel positions rather than portrait buffers', () => {
+    const settings = defaultSettings()
+    const base = buildBuffers(portrait, settings)
+    settings.tunnel.radiusMin = 3
+    settings.tunnel.radiusMax = 4
     expect(buildBuffers(portrait, settings)).toEqual(base)
   })
 
@@ -183,6 +195,7 @@ const custom: PortraitSettings = {
   fit: { height: 0.7, width: 0.81 },
   initialOpacity: 0.6,
   zoom: { zoomEnd: 0.3, zoomDepth: 1.75, flyEnd: 0.8, flight: 0.15, reach: 7.25, fade: 0.8, jitter: 0.6 },
+  tunnel: { radiusMin: 2, radiusMax: 3, fogNear: 6, fogFar: 25, goalScale: 1.75 },
   seed: 4242,
 }
 
@@ -225,6 +238,13 @@ describe('serializeSettings', () => {
     reach: 5.5,
     fade: 1.5,
     jitter: 0.3,
+  },
+  tunnel: {
+    radiusMin: 2,
+    radiusMax: 3.5,
+    fogNear: 8,
+    fogFar: 30,
+    goalScale: 2.5,
   },
   seed: 1000,
 }`)

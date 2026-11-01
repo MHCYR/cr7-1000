@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { FILL_ZOOM, TUNNEL, currentGoal, fillOffset, fillOrder, nearFade, scrollHeight, scrollState, tunnelPositions } from './tunnel.ts'
+import { FILL_ZOOM, TUNNEL, currentGoal, fillOffset, fillOrder, nearFade, scrollHeight, scrollState, TUNNEL_FOG, tunnelFade, tunnelPositions } from './tunnel.ts'
 
 const { separation } = TUNNEL
 
@@ -38,12 +38,22 @@ describe('tunnelPositions', () => {
   })
 
   it('spreads X/Y at random on a ring around the camera path, so the camera passes beside every goal', () => {
+    expect(TUNNEL.radius).toEqual({ min: 2, max: 3.5 })
     for (let i = 0; i < positions.length; i += 3) {
       const radius = Math.hypot(positions[i], positions[i + 1])
       expect(radius).toBeGreaterThanOrEqual(TUNNEL.radius.min - 1e-6)
       expect(radius).toBeLessThanOrEqual(TUNNEL.radius.max + 1e-6)
     }
     expect(new Set(Array.from({ length: 10 }, (_, i) => positions[i * 3])).size).toBe(10)
+  })
+
+  it('respects a custom radius without changing chronological depth', () => {
+    const custom = tunnelPositions(100, 7, { ...TUNNEL, radius: { min: 3, max: 4 } })
+    for (let i = 0; i < 100; i++) {
+      expect(Math.hypot(custom[i * 3], custom[i * 3 + 1])).toBeGreaterThanOrEqual(3 - 1e-6)
+      expect(Math.hypot(custom[i * 3], custom[i * 3 + 1])).toBeLessThanOrEqual(4 + 1e-6)
+      expect(custom[i * 3 + 2]).toBeCloseTo(-(i + 1) * separation)
+    }
   })
 
   it('is fixed by its seed', () => {
@@ -164,6 +174,31 @@ describe('fillOrder', () => {
 
   it('stays in [0, 1] for a single pixel at the center', () => {
     expect(Array.from(fillOrder(new Float32Array(3), 3, 0))).toEqual([0])
+  })
+})
+
+describe('tunnelFade', () => {
+  const fog = { near: 8, far: 30 }
+
+  it('keeps nearby goals solid and hides goals at or beyond the fog end', () => {
+    for (const depth of [-1, 0, 8]) expect(tunnelFade(depth, fog)).toBe(1)
+    for (const depth of [30, 31, 500]) expect(tunnelFade(depth, fog)).toBe(0)
+  })
+
+  it('decreases smoothly with an exact half-opacity midpoint', () => {
+    expect(tunnelFade(12, fog)).toBeGreaterThan(tunnelFade(19, fog))
+    expect(tunnelFade(19, fog)).toBe(0.5)
+    expect(tunnelFade(19, fog)).toBeGreaterThan(tunnelFade(26, fog))
+  })
+
+  it('hides the goals flying deep into the tunnel, so they never pile up at the center', () => {
+    // Goal 1000 halfway through its flight is ~250 units away: fully in the fog.
+    expect(tunnelFade(250, fog)).toBe(0)
+  })
+
+  it('by default leaves the assembled portrait untouched: it is closer than the fog start', () => {
+    expect(TUNNEL_FOG.near).toBeGreaterThan(TUNNEL.cameraStart)
+    expect(tunnelFade(TUNNEL.cameraStart)).toBe(1)
   })
 })
 

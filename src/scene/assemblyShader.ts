@@ -1,5 +1,5 @@
 // GPU side of the entry animation and the tunnel. Mirrors assemblyOffset in
-// src/portrait/assemble.ts, and fillOffset and nearFade in src/tunnel/tunnel.ts: keep them in
+// src/portrait/assemble.ts, and fillOffset, nearFade and tunnelFade in src/tunnel/tunnel.ts: keep them in
 // sync. With TUNNEL defined (goal pixels), uProgress flies each point from the portrait to
 // aTunnel, in world units (src/tunnel/tunnel.ts); without it (fill pixels), uProgress brings
 // the whole image toward the camera and then each point past it in aOrder, fading it out as it
@@ -26,7 +26,12 @@ export const assemblyVertexShader = /* glsl */ `
   uniform float uViewportHeight;
   // 0 with the portrait assembled, 1 with the goal pixels in the tunnel.
   uniform float uProgress;
-  #ifndef TUNNEL
+  #ifdef TUNNEL
+  uniform float uFogNear;
+  uniform float uFogFar;
+  // Goal pixel size in the tunnel, as a multiple of its size in the portrait.
+  uniform float uTunnelScale;
+  #else
   // FILL_ZOOM: timings as shares of uProgress, lengths in world units.
   uniform float uZoomEnd;
   uniform float uZoomDepth;
@@ -61,11 +66,14 @@ export const assemblyVertexShader = /* glsl */ `
     vColor = aColor;
     // Faint like a starfield while scattered, solid once in the portrait.
     vAlpha = mix(uInitialOpacity, 1.0, offset);
-    #ifndef TUNNEL
+    #ifdef TUNNEL
+    vAlpha *= 1.0 - smoothstep(uFogNear, uFogFar, depth);
+    gl_PointSize *= mix(1.0, uTunnelScale, smoothstep(0.0, 1.0, uProgress));
+    #else
     vAlpha *= smoothstep(0.0, uFade, depth);
-    // A faded pixel next to the camera would still cover the screen: skip its fragments.
-    if (vAlpha <= 0.0) gl_PointSize = 0.0;
     #endif
+    // A faded pixel need not cover the screen: skip its fragments.
+    if (vAlpha <= 0.0) gl_PointSize = 0.0;
   }
 `
 

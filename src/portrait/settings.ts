@@ -1,7 +1,7 @@
 import { ASSEMBLY, SCATTER, type AssemblyTiming, fillDelays, goalDelays, scatterStart } from './assemble.ts'
 import { EDGE_DISPERSION, EDGE_SHRINK, FILL_SIZE, disperseEdges, fillSizes } from './fill.ts'
 import { EDGE_BAND, FILL_DENSITY, type Portrait, type PortraitOptions } from './sample.ts'
-import { FILL_ZOOM, type FillZoom, fillOrder } from '../tunnel/tunnel.ts'
+import { FILL_ZOOM, TUNNEL, TUNNEL_FOG, TUNNEL_GOAL_SCALE, type FillZoom, fillOrder } from '../tunnel/tunnel.ts'
 
 // Every number that shapes the portrait, in one plain object: the dev controls edit it, and
 // it can be copied as a whole (JSON-safe, no functions). Defaults come from the constants of
@@ -29,6 +29,8 @@ export interface PortraitSettings {
   initialOpacity: number
   /** How the fill pixels come toward the camera on scroll (see FILL_ZOOM). */
   zoom: FillZoom
+  /** Cylinder wall radii and distance fog, in world units. */
+  tunnel: { radiusMin: number; radiusMax: number; fogNear: number; fogFar: number; goalScale: number }
   /** One seed for the goal spread and every random buffer. */
   seed: number
 }
@@ -55,6 +57,7 @@ export const PORTRAIT_DEFAULTS: PortraitSettings = {
   fit: { ...FIT },
   initialOpacity: INITIAL_OPACITY,
   zoom: { ...FILL_ZOOM },
+  tunnel: { radiusMin: TUNNEL.radius.min, radiusMax: TUNNEL.radius.max, fogNear: TUNNEL_FOG.near, fogFar: TUNNEL_FOG.far, goalScale: TUNNEL_GOAL_SCALE },
   seed: DEFAULT_SEED,
 }
 

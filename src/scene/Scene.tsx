@@ -103,8 +103,12 @@ function PortraitCloud({ portrait, settings, restart }: { portrait: Portrait; se
   const reducedMotion = useRef(prefersReducedMotion())
   const restarted = useRef(restart)
 
-  // Tunnel positions do not depend on the settings: fixed seed, world units.
-  const tunnel = useMemo(() => tunnelPositions(portrait.goals.count), [portrait.goals.count])
+  // Fixed seed, world units: only the radii and goal count change the wall positions.
+  const { radiusMin, radiusMax, fogNear, fogFar, goalScale } = settings.tunnel
+  const tunnel = useMemo(
+    () => tunnelPositions(portrait.goals.count, undefined, { separation: TUNNEL.separation, radius: { min: radiusMin, max: radiusMax } }),
+    [portrait.goals.count, radiusMin, radiusMax],
+  )
   // Read and damped every frame, outside React: scrolling never rerenders the scene.
   const scroll = useRef<ScrollState>({ progress: 0, cameraZ: TUNNEL.cameraStart })
 
@@ -151,6 +155,8 @@ function PortraitCloud({ portrait, settings, restart }: { portrait: Portrait; se
         clock={clock}
         scroll={scroll}
         tunnel={tunnel}
+        fog={{ near: fogNear, far: fogFar }}
+        tunnelScale={goalScale}
         size={portrait.cellSize * scale * GOAL_SIZE}
         outline={GOAL_OUTLINE}
         duration={assembly.duration}

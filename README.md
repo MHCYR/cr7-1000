@@ -24,11 +24,13 @@ pnpm preview   # sirve el build de dist/
 
 ## Ajustar el retrato en desarrollo
 
-Con `pnpm dev` aparece un panel Leva con cuatro grupos: **Animación**, **Píxeles de relleno y bordes**, **Entrada al túnel** y **Encuadre y semillas**. Los valores iniciales salen de `PORTRAIT_DEFAULTS` en `src/portrait/settings.ts`; el panel no guarda configuraciones y una recarga completa restaura esos valores.
+Con `pnpm dev` aparece un panel Leva con cinco grupos: **Animación**, **Píxeles de relleno y bordes**, **Entrada al túnel**, **Túnel de goles** y **Encuadre y semillas**. Los valores iniciales salen de `PORTRAIT_DEFAULTS` en `src/portrait/settings.ts`; el panel no guarda configuraciones y una recarga completa restaura esos valores.
 
 | Cambio | Trabajo que realiza |
 |---|---|
 | Duración, opacidad inicial, ocupación del viewport y tiempos y distancias de la entrada al túnel | Actualiza uniforms o escala, sin regenerar puntos |
+| Radios del túnel | Recalcula solo las posiciones de las paredes del túnel, sin volver a muestrear la foto |
+| Niebla del túnel y tamaño de gol en el túnel | Actualiza solo uniforms, sin regenerar posiciones ni buffers |
 | Escalonados, arranque de goles, dispersión inicial, tamaños, dispersión y encogimiento del borde, azar del orden | Recalcula buffers sin leer otra vez la foto |
 | Densidad, franja de borde y semilla general | Ejecuta `samplePortrait` con los píxeles de la foto ya decodificada; la semilla también cambia los buffers aleatorios |
 
@@ -44,7 +46,11 @@ El scroll de la página mueve la escena; la cámara no se controla de otra forma
 
 Para entrar en la imagen, el relleno se mueve en dos pasos mientras la cámara sigue quieta. Primero toda la imagen avanza junta hacia la cámara (+Z) hasta `zoomEnd`, y la perspectiva la agranda desde el centro de la pantalla. Después cada píxel de relleno vuela por su cuenta, pasa junto a la cámara y desaparece detrás de ella, como si la imagen tuviera profundidad: sale primero el centro (la cara) y al final los bordes, según un orden fijo por píxel (`fillOrder`: la distancia al centro con un poco de azar de semilla fija). Cada píxel se desvanece al acercarse a la cámara. Todo el relleno pasa la cámara antes de `flyEnd`, así que los goles terminan de alinearse con el relleno ya fuera de la vista. `FILL_ZOOM`, en `src/tunnel/tunnel.ts`, fija esos tiempos (`zoomEnd`, `flyEnd` y `flight`, como fracción del progreso), las distancias (`zoomDepth`, `reach` y `fade`) y el azar del orden (`jitter`); se ajustan en el grupo **Entrada al túnel** del panel. Cambiar el azar del orden recalcula un buffer; el resto solo actualiza uniforms.
 
-En el túnel, el gol número n está en `z = -n × separación`, con X/Y al azar (semilla fija) en un anillo alrededor del eje de la cámara, para que la cámara pase junto a los goles. El gol actual es `round(-z / separación)` de la cámara: 0 antes de entrar al túnel y nunca más que el último gol. Las constantes (`separation`, `radius`, `cameraStart` y `pixelsPerGoal`) están en `TUNNEL`, en `src/tunnel/tunnel.ts`; la interpolación ocurre en el shader, sin rerenders de React por frame.
+En el túnel, el gol número n está en `z = -n × separación`, con X/Y al azar (semilla fija) sobre las paredes de un cilindro alrededor del eje de la cámara. Los radios por defecto van de 2 a 3.5 unidades de mundo: ningún gol queda cerca del eje y las paredes enmarcan la pantalla mientras la cámara pasa junto a ellas. La separación entre goles es de 0.15, para que las paredes se vean densas; al entrar al túnel cada gol crece hasta `goalScale` veces (2.5) su tamaño en el retrato.
+
+La niebla desvanece los goles lejanos: quedan sólidos hasta 8 unidades delante de la cámara y desaparecen a las 30, con una transición suave. Así se ven unos 200 goles por delante, en lugar de acumular los 1000 en un punto central; el centro oscuro se lee como la salida del túnel. La niebla depende solo de la distancia a la cámara, así que también oculta los goles mientras vuelan hacia el fondo del túnel y no se amontonan en el centro durante la transición. No altera el retrato armado mientras la niebla cerca quede más lejos que el retrato (la cámara empieza a 5 unidades). Los radios, la niebla y el tamaño de gol se ajustan en **Túnel de goles**; mantén el radio mínimo por debajo del máximo y la niebla lejos por encima de la cerca. Los radios recalculan solo las posiciones del túnel; la niebla y el tamaño solo cambian uniforms. Los valores iniciales vienen de `TUNNEL.radius`, `TUNNEL_FOG` y `TUNNEL_GOAL_SCALE`, en `src/tunnel/tunnel.ts`, a través de `PORTRAIT_DEFAULTS`.
+
+El gol actual es `round(-z / separación)` de la cámara: 0 antes de entrar al túnel y nunca más que el último gol. Las constantes de recorrido (`separation`, `cameraStart` y `pixelsPerGoal`) siguen en `TUNNEL`; la interpolación ocurre en el shader, sin rerenders de React por frame.
 
 ## Datos de goles
 
