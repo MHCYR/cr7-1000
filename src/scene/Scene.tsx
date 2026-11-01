@@ -2,6 +2,7 @@ import { useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { goles } from '../data/goles.ts'
 import { ASSEMBLY_END, fillDelays, goalDelays, scatterStart } from '../portrait/assemble.ts'
+import { disperseEdges, fillSizes } from '../portrait/fill.ts'
 import { loadPortrait } from '../portrait/load.ts'
 import { goalColors } from '../portrait/palette.ts'
 import { FILL_DENSITY, type Portrait } from '../portrait/sample.ts'
@@ -9,8 +10,7 @@ import { AssemblingPoints } from './AssemblingPoints.tsx'
 
 /** Share of the viewport the portrait may fill. */
 const FIT = { height: 0.88, width: 0.92 }
-/** Point sides relative to a grid cell: fill pixels leave a small gap, goals stand out. */
-const FILL_SIZE = 0.85
+/** Goal pixel side relative to a grid cell: goals stand out from the fill pixels. */
 const GOAL_SIZE = 2.4
 /** Goal pixel outline, as a share of its side. */
 const GOAL_OUTLINE = 0.16
@@ -39,16 +39,19 @@ function PortraitCloud({ portrait }: { portrait: Portrait }) {
   const viewport = useThree((state) => state.viewport)
   const scale = Math.min(viewport.height * FIT.height, (viewport.width * FIT.width) / portrait.aspect)
 
-  const buffers = useMemo(
-    () => ({
-      fillStart: scatterStart(portrait.fill.positions, 1),
+  const buffers = useMemo(() => {
+    const fillPositions = disperseEdges(portrait.fill.positions, portrait.fill.edge, portrait.cellSize, 4)
+    return {
+      fillPositions,
+      fillStart: scatterStart(fillPositions, 1),
       fillDelays: fillDelays(portrait.fill.count, 2),
+      fillSizes: fillSizes(portrait.fill.edge, 5),
       goalStart: scatterStart(portrait.goals.positions, 3),
       goalDelays: goalDelays(portrait.goals.count),
       goalColors: goalColors(portrait.goals.count, goles.length),
-    }),
-    [portrait],
-  )
+      goalSizes: new Float32Array(portrait.goals.count).fill(1),
+    }
+  }, [portrait])
 
   // Seconds into the entry animation, shared by the fill and the goal pixels.
   const clock = useRef(0)
@@ -64,18 +67,20 @@ function PortraitCloud({ portrait }: { portrait: Portrait }) {
   return (
     <group scale={scale}>
       <AssemblingPoints
-        positions={portrait.fill.positions}
+        positions={buffers.fillPositions}
         start={buffers.fillStart}
         delays={buffers.fillDelays}
         colors={portrait.fill.colors}
+        sizes={buffers.fillSizes}
         clock={clock}
-        size={portrait.cellSize * scale * FILL_SIZE}
+        size={portrait.cellSize * scale}
       />
       <AssemblingPoints
         positions={portrait.goals.positions}
         start={buffers.goalStart}
         delays={buffers.goalDelays}
         colors={buffers.goalColors}
+        sizes={buffers.goalSizes}
         clock={clock}
         size={portrait.cellSize * scale * GOAL_SIZE}
         outline={GOAL_OUTLINE}

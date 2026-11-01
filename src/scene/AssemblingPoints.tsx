@@ -11,9 +11,11 @@ interface AssemblingPointsProps {
   delays: Float32Array
   /** sRGB triplets in [0, 1]. */
   colors: Float32Array
+  /** Per-point side, as a multiple of `size`. */
+  sizes: Float32Array
   /** Shared animation clock, in seconds. */
   clock: RefObject<number>
-  /** Point side, in world units. */
+  /** Base point side, in world units. */
   size: number
   /** Dark outline width, as a share of the point side. */
   outline?: number
@@ -21,7 +23,7 @@ interface AssemblingPointsProps {
 }
 
 /** One THREE.Points (one draw call) whose points fly from `start` to `positions`. */
-export function AssemblingPoints({ positions, start, delays, colors, clock, size, outline = 0, renderOrder }: AssemblingPointsProps) {
+export function AssemblingPoints({ positions, start, delays, colors, sizes, clock, size, outline = 0, renderOrder }: AssemblingPointsProps) {
   const material = useRef<ShaderMaterial>(null)
   const uniforms = useMemo(
     () => ({ uTime: { value: 0 }, uViewportHeight: { value: 1 }, uSize: { value: size }, uOutline: { value: outline } }),
@@ -42,6 +44,7 @@ export function AssemblingPoints({ positions, start, delays, colors, clock, size
         <bufferAttribute attach="attributes-aStart" args={[start, 3]} />
         <bufferAttribute attach="attributes-aDelay" args={[delays, 1]} />
         <bufferAttribute attach="attributes-aColor" args={[colors, 3]} />
+        <bufferAttribute attach="attributes-aSize" args={[sizes, 1]} />
       </bufferGeometry>
       <shaderMaterial
         ref={material}

@@ -7,6 +7,7 @@ import { ASSEMBLY } from '../portrait/assemble.ts'
 export const assemblyVertexShader = /* glsl */ `
   attribute vec3 aStart;
   attribute float aDelay;
+  attribute float aSize;
   attribute vec3 aColor;
 
   uniform float uTime;
@@ -22,8 +23,8 @@ export const assemblyVertexShader = /* glsl */ `
 
     vec4 viewPosition = modelViewMatrix * vec4(mix(aStart, position, offset), 1.0);
     gl_Position = projectionMatrix * viewPosition;
-    // uSize is in world units: project it to pixels at this depth.
-    gl_PointSize = uSize * projectionMatrix[1][1] * uViewportHeight * 0.5 / -viewPosition.z;
+    // uSize * aSize is in world units: project it to pixels at this depth.
+    gl_PointSize = uSize * aSize * projectionMatrix[1][1] * uViewportHeight * 0.5 / -viewPosition.z;
 
     vColor = aColor;
     // Faint like a starfield while scattered, solid once in the portrait.

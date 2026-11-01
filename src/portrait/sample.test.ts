@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { type ImageLike, samplePortrait } from './sample.ts'
+import { EDGE_BAND, type ImageLike, samplePortrait } from './sample.ts'
 
 type Rgba = [number, number, number, number]
 
@@ -69,6 +69,34 @@ describe('samplePortrait', () => {
       const { fill } = samplePortrait(opaque, { fillCount })
       expect(Math.abs(fill.count - fillCount) / fillCount).toBeLessThan(0.1)
     }
+  })
+
+  it('marks how close each fill pixel is to the edge of the figure', () => {
+    const inCircle = (x: number, y: number) => (x - 100) ** 2 + (y - 100) ** 2 < 90 ** 2
+    const circle = makeImage(200, 200, (x, y) => (inCircle(x, y) ? [255, 255, 255, 255] : [0, 0, 0, 0]))
+    const { fill, cellSize } = samplePortrait(circle, { fillCount: 8000 })
+
+    expect(fill.edge).toHaveLength(fill.count)
+    points(fill.positions).forEach(([x, y], i) => {
+      const edge = fill.edge[i]
+      expect(edge).toBeGreaterThanOrEqual(0)
+      expect(edge).toBeLessThanOrEqual(1)
+      // Distance from this cell to the border of the circle, in grid cells.
+      const inside = (0.45 - Math.hypot(x, y)) / cellSize
+      // On a curved edge the closest background cell can be one step further away.
+      if (inside < 0.3) expect(edge).toBeGreaterThanOrEqual(1 - 1 / EDGE_BAND)
+      if (inside > EDGE_BAND + 2) expect(edge).toBe(0)
+    })
+  })
+
+  it('treats the border of the image as an edge of the figure', () => {
+    const { fill, cellSize } = samplePortrait(opaque, { fillCount: 8000 })
+
+    points(fill.positions).forEach(([x, y], i) => {
+      const inside = (0.5 - Math.max(Math.abs(x), Math.abs(y))) / cellSize
+      if (inside < 1) expect(fill.edge[i]).toBe(1)
+      if (inside > EDGE_BAND + 1) expect(fill.edge[i]).toBe(0)
+    })
   })
 
   it('is deterministic for the same image and density', () => {
