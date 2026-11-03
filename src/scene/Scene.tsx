@@ -1,8 +1,9 @@
 import { useFrame, useThree } from '@react-three/fiber'
-import { type RefObject, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { MathUtils } from 'three'
 import { goles } from '../data/goles.ts'
-import { CARD_REVEAL, layoutCards } from '../hud/cardLayout.ts'
+import { CARD_DEPTH, CARD_REVEAL, CARD_WINDOW, layoutCards, visibleRange } from '../hud/cardLayout.ts'
+import type { GoalCardLayer } from '../hud/cardWindow.ts'
 import { assemblyEnd } from '../portrait/assemble.ts'
 import { PORTRAIT_URL, loadImagePixels } from '../portrait/load.ts'
 import { goalColors } from '../portrait/palette.ts'
@@ -31,7 +32,7 @@ interface SceneProps {
   /** Changing it plays the entry animation again from the start, without rebuilding anything. */
   restart?: number
   /** Goal card slots, index i for goal i + 1: the scene moves them onto their goals every frame. */
-  cards?: RefObject<(HTMLElement | null)[]>
+  cards?: GoalCardLayer
 }
 
 /**
@@ -74,7 +75,7 @@ export function Scene({ settings = DEFAULT_SETTINGS, restart = 0, cards }: Scene
   return portrait && <PortraitCloud portrait={portrait} settings={settings} restart={restart} cards={cards} />
 }
 
-function PortraitCloud({ portrait, settings, restart, cards }: { portrait: Portrait; settings: PortraitSettings; restart: number; cards?: RefObject<(HTMLElement | null)[]> }) {
+function PortraitCloud({ portrait, settings, restart, cards }: { portrait: Portrait; settings: PortraitSettings; restart: number; cards?: GoalCardLayer }) {
   const viewport = useThree((state) => state.viewport)
   const { fit, assembly, initialOpacity } = settings
   const scale = Math.min(viewport.height * fit.height, (viewport.width * fit.width) / portrait.aspect)
@@ -134,14 +135,18 @@ function PortraitCloud({ portrait, settings, restart, cards }: { portrait: Portr
 
     if (cards) {
       const { width, height } = state.size
-      layoutCards(cards.current, tunnel, {
+      // GoalCards mounts the window once React rerenders; until then its new slots are skipped.
+      const range = visibleRange(current.cameraZ, TUNNEL.separation, CARD_WINDOW, portrait.goals.count)
+      cards.window.set(range[0])
+      layoutCards(cards.slots, tunnel, {
         cameraZ: current.cameraZ,
         focal: (state.camera.projectionMatrix.elements[5] * height) / 2,
         width,
         height,
         progress: current.progress,
         fog: { near: fogNear, far: fogFar },
-      })
+        cardDepth: CARD_DEPTH,
+      }, range)
     }
   })
 
@@ -173,6 +178,7 @@ function PortraitCloud({ portrait, settings, restart, cards }: { portrait: Portr
         fog={{ near: fogNear, far: fogFar }}
         tunnelScale={goalScale}
         handOff={cards ? CARD_REVEAL : undefined}
+        cardDepth={cards ? CARD_DEPTH : undefined}
         size={portrait.cellSize * scale * GOAL_SIZE}
         outline={GOAL_OUTLINE}
         duration={assembly.duration}

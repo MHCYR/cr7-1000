@@ -33,6 +33,8 @@ export const assemblyVertexShader = /* glsl */ `
   uniform float uTunnelScale;
   // Progress over which the goal cards take over from the goal pixels (CARD_REVEAL).
   uniform vec2 uHandOff;
+  // Depth past which the goal pixels are back instead of the cards (CARD_DEPTH).
+  uniform vec2 uCardDepth;
   #else
   // FILL_ZOOM: timings as shares of uProgress, lengths in world units.
   uniform float uZoomEnd;
@@ -70,8 +72,9 @@ export const assemblyVertexShader = /* glsl */ `
     vAlpha = mix(uInitialOpacity, 1.0, offset);
     #ifdef TUNNEL
     vAlpha *= 1.0 - smoothstep(uFogNear, uFogFar, depth);
-    // In the tunnel each goal is a card, drawn over the canvas (src/hud/GoalCards.tsx).
-    vAlpha *= 1.0 - smoothstep(uHandOff.x, uHandOff.y, uProgress);
+    // In the tunnel the goals closest to the camera are cards, drawn over the canvas
+    // (src/hud/GoalCards.tsx); the farther ones stay pixels, with no gap between the two.
+    vAlpha *= 1.0 - smoothstep(uHandOff.x, uHandOff.y, uProgress) * (1.0 - smoothstep(uCardDepth.x, uCardDepth.y, depth));
     gl_PointSize *= mix(1.0, uTunnelScale, smoothstep(0.0, 1.0, uProgress));
     #else
     vAlpha *= smoothstep(0.0, uFade, depth);

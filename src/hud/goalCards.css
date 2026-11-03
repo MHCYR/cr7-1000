@@ -36,6 +36,12 @@
   pointer-events: auto;
 }
 
+/* Hundreds of blurred layers are too slow: only the closest cards, and an open one, blur. */
+.goal-slot--unblurred:not(.goal-slot--open) .hud-glass {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
 /* Opening a card lifts it over its neighbours without moving them. */
 .goal-slot--open {
   z-index: 10000 !important;

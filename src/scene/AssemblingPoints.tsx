@@ -7,6 +7,7 @@ import { assemblyFragmentShader, assemblyVertexShader } from './assemblyShader.t
 
 /** Past the end of the scroll: the points never hand off. */
 const NO_HAND_OFF = { start: 2, end: 3 } as const
+const NO_CARD_DEPTH = { start: 0, end: 0 } as const
 
 interface AssemblingPointsProps {
   /** Final xyz positions in the portrait. */
@@ -30,6 +31,8 @@ interface AssemblingPointsProps {
   tunnelScale?: number
   /** Progress over which the points fade out in the tunnel, replaced by the goal cards; never, by default. */
   handOff?: { start: number; end: number }
+  /** Depth, in front of the camera, over which the points come back in place of the cards. */
+  cardDepth?: { start: number; end: number }
   /** How the points come toward the camera when there is no tunnel. */
   zoom?: FillZoom
   /** Fly-out order of each point toward the camera, in [0, 1]; needed with `zoom`. */
@@ -49,7 +52,7 @@ interface AssemblingPointsProps {
  * One THREE.Points (one draw call) whose points fly from `start` to `positions`, and on scroll
  * either to `tunnel` or toward the camera and past it.
  */
-export function AssemblingPoints({ positions, start, delays, colors, sizes, clock, scroll, tunnel, fog = TUNNEL_FOG, tunnelScale = 1, handOff = NO_HAND_OFF, zoom, order, size, outline = 0, duration, initialOpacity, renderOrder }: AssemblingPointsProps) {
+export function AssemblingPoints({ positions, start, delays, colors, sizes, clock, scroll, tunnel, fog = TUNNEL_FOG, tunnelScale = 1, handOff = NO_HAND_OFF, cardDepth = NO_CARD_DEPTH, zoom, order, size, outline = 0, duration, initialOpacity, renderOrder }: AssemblingPointsProps) {
   const points = useRef<Points>(null)
   const material = useRef<ShaderMaterial>(null)
   // One object for the life of the component: the dev controls only change its values, so
@@ -72,6 +75,7 @@ export function AssemblingPoints({ positions, start, delays, colors, sizes, cloc
     uFogFar: { value: fog.far },
     uTunnelScale: { value: tunnelScale },
     uHandOff: { value: new Vector2(handOff.start, handOff.end) },
+    uCardDepth: { value: new Vector2(cardDepth.start, cardDepth.end) },
   }))
   // Fixed per mount: a tunnel is either given or not, so the shader compiles once.
   const [defines] = useState(() => (tunnel ? { TUNNEL: '' } : {}))
@@ -91,6 +95,7 @@ export function AssemblingPoints({ positions, start, delays, colors, sizes, cloc
       values.uFogFar.value = fog.far
       values.uTunnelScale.value = tunnelScale
       values.uHandOff.value.set(handOff.start, handOff.end)
+      values.uCardDepth.value.set(cardDepth.start, cardDepth.end)
       return
     }
     if (!zoom) return

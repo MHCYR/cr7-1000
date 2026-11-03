@@ -11,7 +11,7 @@ export const TUNNEL = {
   /** Distance in Z between two consecutive goals. */
   separation: 0.15,
   /** Goals sit on a ring around the camera path, so the camera passes beside them. */
-  radius: { min: 3.5, max: 10 },
+  radius: { min: 0.5, max: 0.9 },
   /** Camera Z while the portrait is on screen. */
   cameraStart: 5,
   /** Scroll, in CSS pixels, that moves the camera from one goal to the next. */
@@ -41,10 +41,10 @@ export const FILL_ZOOM = {
 } as const
 
 /** Distance fog on the goal walls, in world units in front of the camera; near stays past cameraStart. */
-export const TUNNEL_FOG = { near: 21, far: 100 } as const
+export const TUNNEL_FOG = { near: 13.5, far: 19.5 } as const
 
 /** How many times bigger a goal pixel is in the tunnel than in the portrait. */
-export const TUNNEL_GOAL_SCALE = 10
+export const TUNNEL_GOAL_SCALE = 0.5
 
 export interface TunnelFog { near: number; far: number }
 

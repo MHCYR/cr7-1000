@@ -1,32 +1,37 @@
-import { type PointerEvent, type RefObject, memo, useCallback, useEffect, useMemo, useState } from 'react'
+import { type PointerEvent, memo, useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import { clubes, goles } from '../data/goles.ts'
 import { es } from '../i18n/es.ts'
 import { GOAL_PIXELS } from '../portrait/sample.ts'
+import { BLURRED_CARDS, CARD_WINDOW } from './cardLayout.ts'
+import type { GoalCardLayer } from './cardWindow.ts'
 import { type CardClub, type GoalCardData, goalCardData } from './goalCard.ts'
 import './tokens.css'
 import './goalCards.css'
 
 interface GoalCardsProps {
-  /** Filled with one slot per goal, index i for goal i + 1; the scene moves them every frame. */
-  slots: RefObject<(HTMLElement | null)[]>
+  /** Its slots get one entry per mounted card, index i for goal i + 1; the scene moves them every frame. */
+  layer: GoalCardLayer
   count?: number
 }
 
 /**
- * The goal cards of the tunnel (DESIGN.md, GoalCard), one per goal, over the canvas. React only
- * renders them and tracks the one open card; their screen positions are written straight to
- * the DOM by the scene (src/hud/cardLayout.ts), so scrolling never rerenders them.
+ * The goal cards of the tunnel (DESIGN.md, GoalCard) over the canvas: only the CARD_WINDOW goals
+ * from the camera on, so the DOM never holds more cards than that (#21). React renders them
+ * again only when the window slides, once per goal, and tracks the one open card; their screen
+ * positions are written straight to the DOM by the scene (src/hud/cardLayout.ts).
  */
-export function GoalCards({ slots, count = GOAL_PIXELS }: GoalCardsProps) {
+export function GoalCards({ layer, count = GOAL_PIXELS }: GoalCardsProps) {
+  const { mount, window: cardWindow } = layer
   const cards = useMemo(() => Array.from({ length: count }, (_, i) => goalCardData(i + 1, goles, clubes)), [count])
-  const setSlot = useMemo(
-    () => cards.map((_, i) => (element: HTMLElement | null) => void (slots.current[i] = element)),
-    [cards, slots],
-  )
+  const start = useSyncExternalStore(cardWindow.subscribe, cardWindow.start)
+  const end = Math.min(start + CARD_WINDOW, count)
   // Only one card is open at a time.
   const [open, setOpen] = useState<number | null>(null)
   const show = useCallback((numero: number) => setOpen(numero), [])
   const hide = useCallback((numero: number) => setOpen((current) => (current === numero ? null : current)), [])
+
+  // A card that leaves the window closes, so it does not open again when it comes back.
+  if (open !== null && (open <= start || open > end)) setOpen(null)
 
   // On touch, a card closes when tapping outside it.
   useEffect(() => {
@@ -39,20 +44,41 @@ export function GoalCards({ slots, count = GOAL_PIXELS }: GoalCardsProps) {
 
   return (
     <div className="goal-cards">
-      {cards.map((card, i) => (
-        <div
+      {cards.slice(start, end).map((card, offset) => (
+        <GoalSlot
           key={card.numero}
-          ref={setSlot[i]}
-          className={open === card.numero ? 'goal-slot goal-slot--open' : 'goal-slot'}
+          mount={mount}
+          card={card}
           // The goal closest to the camera has the lowest number ahead: it stacks on top.
-          style={{ zIndex: count - i }}
-        >
-          <GoalCard card={card} open={open === card.numero} onOpen={show} onClose={hide} />
-        </div>
+          zIndex={count - card.numero}
+          blurred={offset < BLURRED_CARDS}
+          open={open === card.numero}
+          onOpen={show}
+          onClose={hide}
+        />
       ))}
     </div>
   )
 }
+
+interface GoalSlotProps extends GoalCardProps {
+  mount: GoalCardLayer['mount']
+  zIndex: number
+  /** Only the cards closest to the camera blur the tunnel behind them. */
+  blurred: boolean
+}
+
+const GoalSlot = memo(function GoalSlot({ mount, zIndex, blurred, ...cardProps }: GoalSlotProps) {
+  const index = cardProps.card.numero - 1
+  const setSlot = useCallback((element: HTMLElement | null) => mount(index, element), [mount, index])
+  const className = ['goal-slot', cardProps.open && 'goal-slot--open', !blurred && 'goal-slot--unblurred'].filter(Boolean).join(' ')
+
+  return (
+    <div ref={setSlot} className={className} style={{ zIndex }}>
+      <GoalCard {...cardProps} />
+    </div>
+  )
+})
 
 interface GoalCardProps {
   card: GoalCardData
