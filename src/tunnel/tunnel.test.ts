@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { FILL_ZOOM, TUNNEL, currentGoal, fillOffset, fillOrder, nearFade, scrollHeight, scrollState, TUNNEL_FOG, tunnelFade, tunnelPositions } from './tunnel.ts'
+import { FILL_ZOOM, TUNNEL, currentGoal, fillOffset, fillOrder, nearFade, scrollHeight, scrollReadout, scrollState, tunnelScroll, TUNNEL_FOG, tunnelFade, tunnelPositions } from './tunnel.ts'
 
 const { separation } = TUNNEL
 
@@ -215,5 +215,36 @@ describe('nearFade', () => {
     expect(nearFade(0.75, fade)).toBeCloseTo(0.5)
     expect(nearFade(0, fade)).toBe(0)
     expect(nearFade(-1, fade)).toBe(0)
+  })
+})
+
+describe('scrollReadout', () => {
+  const viewport = 800
+  const goals = 1000
+  const bottom = scrollHeight(viewport, goals)
+
+  it('starts the entry at 0 % with the portrait', () => {
+    expect(scrollReadout(0, viewport, goals)).toEqual({ phase: 'entry', phasePercent: 0, goal: 0, globalPercent: 0 })
+  })
+
+  it('reads the entry in the same scale as the FILL_ZOOM keyframes', () => {
+    const readout = scrollReadout(FILL_ZOOM.zoomEnd * viewport, viewport, goals)
+    expect(readout.phase).toBe('entry')
+    expect(readout.phasePercent).toBeCloseTo(FILL_ZOOM.zoomEnd * 100)
+    expect(scrollReadout(viewport, viewport, goals)).toMatchObject({ phase: 'entry', phasePercent: 100 })
+  })
+
+  it('then reads the tunnel from 0 % to 100 %, with the goal closest to the camera', () => {
+    const toGoal1 = viewport + (TUNNEL.cameraStart / separation + 1) * TUNNEL.pixelsPerGoal
+    expect(scrollReadout(toGoal1, viewport, goals)).toMatchObject({ phase: 'tunnel', goal: 1 })
+    const half = scrollReadout(viewport + tunnelScroll(goals) / 2, viewport, goals)
+    expect(half.phase).toBe('tunnel')
+    expect(half.phasePercent).toBeCloseTo(50)
+  })
+
+  it('ends at 100 % and goal 1000 at the bottom of the page, and stops there', () => {
+    expect(scrollReadout(bottom, viewport, goals)).toEqual({ phase: 'tunnel', phasePercent: 100, goal: 1000, globalPercent: 100 })
+    expect(scrollReadout(bottom + 500, viewport, goals)).toEqual(scrollReadout(bottom, viewport, goals))
+    expect(scrollReadout(-50, viewport, goals)).toEqual(scrollReadout(0, viewport, goals))
   })
 })

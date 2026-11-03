@@ -166,3 +166,34 @@ export function scrollState(scrollY: number, viewportHeight: number, goalCount: 
   const travelled = (Math.max(scroll - viewportHeight, 0) / tunnel.pixelsPerGoal) * tunnel.separation
   return { progress, cameraZ: tunnel.cameraStart - travelled }
 }
+
+export interface ScrollReadout {
+  /** 'entry' while the goals fly to the tunnel, 'tunnel' once the camera moves. */
+  phase: 'entry' | 'tunnel'
+  /** Progress through the current phase, 0 to 100; in the entry it is ScrollState.progress × 100. */
+  phasePercent: number
+  /** The goal closest to the camera (currentGoal); 0 in the entry and before goal 1. */
+  goal: number
+  /** Progress through the whole page scroll, 0 to 100. */
+  globalPercent: number
+}
+
+/**
+ * Where `scrollY` falls on the scroll timeline, for the development readout: the phase, its
+ * progress and the whole page's. Same scroll math as scrollState, so the readout matches the
+ * keyframes in FILL_ZOOM (zoomEnd 0.25 is entry 25 %).
+ */
+export function scrollReadout(scrollY: number, viewportHeight: number, goalCount: number, tunnel = TUNNEL): ScrollReadout {
+  const height = scrollHeight(viewportHeight, goalCount, tunnel)
+  const scroll = Math.min(Math.max(scrollY, 0), height)
+  const { progress, cameraZ } = scrollState(scroll, viewportHeight, goalCount, tunnel)
+  const globalPercent = height > 0 ? (scroll / height) * 100 : 100
+  if (scroll <= viewportHeight) return { phase: 'entry', phasePercent: progress * 100, goal: 0, globalPercent }
+  const length = tunnelScroll(goalCount, tunnel)
+  return {
+    phase: 'tunnel',
+    phasePercent: length > 0 ? ((scroll - viewportHeight) / length) * 100 : 100,
+    goal: currentGoal(cameraZ, tunnel.separation, goalCount),
+    globalPercent,
+  }
+}
