@@ -114,7 +114,7 @@ function PortraitCloud({ portrait, settings, restart, cards }: { portrait: Portr
     [portrait.goals.count, radiusMin, radiusMax],
   )
   // Read and damped every frame, outside React: scrolling never rerenders the scene.
-  const scroll = useRef<ScrollState>({ progress: 0, cameraZ: TUNNEL.cameraStart })
+  const scroll = useRef<ScrollState>({ progress: 0, fill: 0, cameraZ: TUNNEL.cameraStart })
 
   useFrame((state, delta) => {
     if (restarted.current !== restart) {
@@ -129,6 +129,7 @@ function PortraitCloud({ portrait, settings, restart, cards }: { portrait: Portr
     if (reducedMotion.current) Object.assign(current, target)
     else {
       current.progress = MathUtils.damp(current.progress, target.progress, SCROLL_DAMPING, delta)
+      current.fill = MathUtils.damp(current.fill, target.fill, SCROLL_DAMPING, delta)
       current.cameraZ = MathUtils.damp(current.cameraZ, target.cameraZ, SCROLL_DAMPING, delta)
     }
     state.camera.position.z = current.cameraZ

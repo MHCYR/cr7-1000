@@ -1,6 +1,7 @@
 import { LevaPanel, folder, useControls, useCreateStore } from 'leva'
 import { type ReactNode, useState } from 'react'
 import { type PortraitSettings, SEED_MAX, defaultSettings, serializeSettings } from '../portrait/settings.ts'
+import { ScrollReadout } from './ScrollReadout.tsx'
 import './controls.css'
 
 const defaults = defaultSettings()
@@ -87,6 +88,7 @@ export default function DevControls({ children }: DevControlsProps) {
   return (
     <>
       {children(settings, restart)}
+      <ScrollReadout />
       <aside className="portrait-controls" aria-label="Controles de desarrollo del retrato">
         <LevaPanel store={store} fill titleBar={{ title: 'Retrato · desarrollo' }} />
         <div className="portrait-controls-actions">
