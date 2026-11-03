@@ -23,8 +23,8 @@ function PortraitView({ settings, restart }: { settings?: PortraitSettings; rest
         </Canvas>
       </div>
       <GoalCards layer={cards} />
-      {/* The page scrolls one viewport for the flight to the tunnel, then the tunnel itself. */}
-      <div style={{ height: `calc(200vh + ${tunnelScroll(GOAL_PIXELS)}px)` }} />
+      {/* The page scrolls the entry (TUNNEL.entry of a viewport), then the tunnel itself. */}
+      <div style={{ height: `calc(${100 + TUNNEL.entry * 100}vh + ${tunnelScroll(GOAL_PIXELS)}px)` }} />
       <h1 className="hud">{es.siteTitle}</h1>
     </>
   )

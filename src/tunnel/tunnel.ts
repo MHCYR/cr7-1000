@@ -16,12 +16,20 @@ export const TUNNEL = {
   cameraStart: 5,
   /** Scroll, in CSS pixels, that moves the camera from one goal to the next. */
   pixelsPerGoal: 24,
+  /**
+   * Scroll of the entry, as a share of the viewport height: the goals fly to the tunnel and the
+   * cards take over in it, then the camera moves. The fill pixels are gone from sight by then,
+   * so a longer entry only leaves a pause before the tunnel.
+   */
+  entry: 0.466,
 } as const
 
 /**
  * How the fill pixels come toward the camera while the goals fly to the tunnel: first the whole
  * image at once, so it grows, then one by one from the center out, as if it had depth. Every
- * timing is a share of the scroll progress (0 to 1), every length in world units.
+ * timing is a share of a viewport of scroll (ScrollState.fill, 0 to 1), so it does not follow
+ * TUNNEL.entry: the last ones, already out of sight, finish while the camera enters the tunnel.
+ * Every length is in world units.
  */
 export const FILL_ZOOM = {
   /** Progress at which the image stops growing as a whole. */
@@ -80,9 +88,14 @@ export function tunnelScroll(goalCount: number, tunnel = TUNNEL): number {
   return (tunnel.cameraStart / tunnel.separation + goalCount) * tunnel.pixelsPerGoal
 }
 
-/** Scroll, in CSS pixels, from the portrait to the last goal: one viewport, then the tunnel. */
+/** Scroll, in CSS pixels, of the entry: TUNNEL.entry of the viewport height. */
+export function entryScroll(viewportHeight: number, tunnel: { entry: number } = TUNNEL): number {
+  return viewportHeight * tunnel.entry
+}
+
+/** Scroll, in CSS pixels, from the portrait to the last goal: the entry, then the tunnel. */
 export function scrollHeight(viewportHeight: number, goalCount: number, tunnel = TUNNEL): number {
-  return viewportHeight + tunnelScroll(goalCount, tunnel)
+  return entryScroll(viewportHeight, tunnel) + tunnelScroll(goalCount, tunnel)
 }
 
 /** Hermite smoothstep, as in GLSL: 0 at or below `edge0`, 1 at or above `edge1`. */
@@ -150,21 +163,26 @@ export function nearFade(depth: number, fade: number = FILL_ZOOM.fade): number {
 }
 
 export interface ScrollState {
-  /** 0 with the portrait assembled, 1 with every goal pixel in the tunnel. */
+  /** 0 with the portrait assembled, 1 with every goal pixel in the tunnel: the entry. */
   progress: number
+  /** Scroll over the first viewport, 0 to 1: the clock of the fill pixels (FILL_ZOOM). */
+  fill: number
   cameraZ: number
 }
 
 /**
- * Where the scene stands at `scrollY`: the first viewport of scroll flies the goal pixels to
- * the tunnel with the camera still; the rest moves the camera to the last goal. Pure, so
- * scrolling back up gives back the same states down to the portrait.
+ * Where the scene stands at `scrollY`: the entry (entryScroll) flies the goal pixels to the
+ * tunnel with the camera still; the rest moves the camera to the last goal. The fill pixels
+ * follow the first viewport of scroll, past the entry. Pure, so scrolling back up gives back
+ * the same states down to the portrait.
  */
 export function scrollState(scrollY: number, viewportHeight: number, goalCount: number, tunnel = TUNNEL): ScrollState {
   const scroll = Math.min(Math.max(scrollY, 0), scrollHeight(viewportHeight, goalCount, tunnel))
-  const progress = viewportHeight > 0 ? Math.min(scroll / viewportHeight, 1) : 1
-  const travelled = (Math.max(scroll - viewportHeight, 0) / tunnel.pixelsPerGoal) * tunnel.separation
-  return { progress, cameraZ: tunnel.cameraStart - travelled }
+  const entry = entryScroll(viewportHeight, tunnel)
+  const progress = entry > 0 ? Math.min(scroll / entry, 1) : 1
+  const fill = viewportHeight > 0 ? Math.min(scroll / viewportHeight, 1) : 1
+  const travelled = (Math.max(scroll - entry, 0) / tunnel.pixelsPerGoal) * tunnel.separation
+  return { progress, fill, cameraZ: tunnel.cameraStart - travelled }
 }
 
 export interface ScrollReadout {
@@ -180,19 +198,21 @@ export interface ScrollReadout {
 
 /**
  * Where `scrollY` falls on the scroll timeline, for the development readout: the phase, its
- * progress and the whole page's. Same scroll math as scrollState, so the readout matches the
- * keyframes in FILL_ZOOM (zoomEnd 0.25 is entry 25 %).
+ * progress and the whole page's. Same scroll math as scrollState: the entry percent is its
+ * progress, so CARD_REVEAL (src/hud/cardLayout.ts) reads as is; the FILL_ZOOM keyframes are
+ * shares of a viewport, at keyframe / TUNNEL.entry of the entry.
  */
 export function scrollReadout(scrollY: number, viewportHeight: number, goalCount: number, tunnel = TUNNEL): ScrollReadout {
   const height = scrollHeight(viewportHeight, goalCount, tunnel)
   const scroll = Math.min(Math.max(scrollY, 0), height)
   const { progress, cameraZ } = scrollState(scroll, viewportHeight, goalCount, tunnel)
   const globalPercent = height > 0 ? (scroll / height) * 100 : 100
-  if (scroll <= viewportHeight) return { phase: 'entry', phasePercent: progress * 100, goal: 0, globalPercent }
+  const entry = entryScroll(viewportHeight, tunnel)
+  if (scroll <= entry) return { phase: 'entry', phasePercent: progress * 100, goal: 0, globalPercent }
   const length = tunnelScroll(goalCount, tunnel)
   return {
     phase: 'tunnel',
-    phasePercent: length > 0 ? ((scroll - viewportHeight) / length) * 100 : 100,
+    phasePercent: length > 0 ? ((scroll - entry) / length) * 100 : 100,
     goal: currentGoal(cameraZ, tunnel.separation, goalCount),
     globalPercent,
   }

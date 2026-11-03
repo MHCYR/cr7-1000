@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { FILL_ZOOM, TUNNEL, currentGoal, fillOffset, fillOrder, nearFade, scrollHeight, scrollReadout, scrollState, tunnelScroll, TUNNEL_FOG, tunnelFade, tunnelPositions } from './tunnel.ts'
+import { FILL_ZOOM, TUNNEL, currentGoal, entryScroll, fillOffset, fillOrder, nearFade, scrollHeight, scrollReadout, scrollState, tunnelScroll, TUNNEL_FOG, tunnelFade, tunnelPositions } from './tunnel.ts'
 
 const { separation } = TUNNEL
 
@@ -65,18 +65,28 @@ describe('tunnelPositions', () => {
 describe('scrollState', () => {
   const viewport = 800
   const goals = 1000
+  const entry = entryScroll(viewport)
+  const top = { progress: 0, fill: 0, cameraZ: TUNNEL.cameraStart }
 
   it('shows the assembled portrait at the top of the page', () => {
-    expect(scrollState(0, viewport, goals)).toEqual({ progress: 0, cameraZ: TUNNEL.cameraStart })
+    expect(scrollState(0, viewport, goals)).toEqual(top)
   })
 
-  it('spends the first viewport of scroll flying the goals to the tunnel, with the camera still', () => {
-    expect(scrollState(viewport / 2, viewport, goals)).toEqual({ progress: 0.5, cameraZ: TUNNEL.cameraStart })
-    expect(scrollState(viewport, viewport, goals)).toEqual({ progress: 1, cameraZ: TUNNEL.cameraStart })
+  it('spends TUNNEL.entry of a viewport flying the goals to the tunnel, with the camera still', () => {
+    expect(entry).toBeCloseTo(viewport * TUNNEL.entry)
+    expect(scrollState(entry / 2, viewport, goals)).toMatchObject({ progress: 0.5, cameraZ: TUNNEL.cameraStart })
+    expect(scrollState(entry, viewport, goals)).toMatchObject({ progress: 1, cameraZ: TUNNEL.cameraStart })
+  })
+
+  it('times the fill pixels by the first viewport of scroll, past the entry', () => {
+    expect(scrollState(entry, viewport, goals).fill).toBeCloseTo(TUNNEL.entry)
+    expect(scrollState(viewport / 2, viewport, goals).fill).toBe(0.5)
+    expect(scrollState(viewport, viewport, goals).fill).toBe(1)
+    expect(scrollState(viewport * 3, viewport, goals).fill).toBe(1)
   })
 
   it('then moves the camera into the tunnel, one separation per pixelsPerGoal of scroll', () => {
-    const { progress, cameraZ } = scrollState(viewport + 10 * TUNNEL.pixelsPerGoal, viewport, goals)
+    const { progress, cameraZ } = scrollState(entry + 10 * TUNNEL.pixelsPerGoal, viewport, goals)
     expect(progress).toBe(1)
     expect(cameraZ).toBeCloseTo(TUNNEL.cameraStart - 10 * separation)
   })
@@ -90,8 +100,8 @@ describe('scrollState', () => {
   it('is reversible: scrolling back up rebuilds the portrait', () => {
     const bottom = scrollHeight(viewport, goals)
     scrollState(bottom, viewport, goals)
-    expect(scrollState(0, viewport, goals)).toEqual({ progress: 0, cameraZ: TUNNEL.cameraStart })
-    expect(scrollState(-40, viewport, goals)).toEqual({ progress: 0, cameraZ: TUNNEL.cameraStart })
+    expect(scrollState(0, viewport, goals)).toEqual(top)
+    expect(scrollState(-40, viewport, goals)).toEqual(top)
   })
 })
 
@@ -227,17 +237,19 @@ describe('scrollReadout', () => {
     expect(scrollReadout(0, viewport, goals)).toEqual({ phase: 'entry', phasePercent: 0, goal: 0, globalPercent: 0 })
   })
 
-  it('reads the entry in the same scale as the FILL_ZOOM keyframes', () => {
+  it('reads the entry as its progress, with the FILL_ZOOM keyframes at keyframe / TUNNEL.entry', () => {
     const readout = scrollReadout(FILL_ZOOM.zoomEnd * viewport, viewport, goals)
     expect(readout.phase).toBe('entry')
-    expect(readout.phasePercent).toBeCloseTo(FILL_ZOOM.zoomEnd * 100)
-    expect(scrollReadout(viewport, viewport, goals)).toMatchObject({ phase: 'entry', phasePercent: 100 })
+    expect(readout.phasePercent).toBeCloseTo((FILL_ZOOM.zoomEnd / TUNNEL.entry) * 100)
+    expect(scrollReadout(entryScroll(viewport), viewport, goals)).toMatchObject({ phase: 'entry', phasePercent: 100 })
   })
 
   it('then reads the tunnel from 0 % to 100 %, with the goal closest to the camera', () => {
-    const toGoal1 = viewport + (TUNNEL.cameraStart / separation + 1) * TUNNEL.pixelsPerGoal
+    const entry = entryScroll(viewport)
+    expect(scrollReadout(entry + 1, viewport, goals).phase).toBe('tunnel')
+    const toGoal1 = entry + (TUNNEL.cameraStart / separation + 1) * TUNNEL.pixelsPerGoal
     expect(scrollReadout(toGoal1, viewport, goals)).toMatchObject({ phase: 'tunnel', goal: 1 })
-    const half = scrollReadout(viewport + tunnelScroll(goals) / 2, viewport, goals)
+    const half = scrollReadout(entry + tunnelScroll(goals) / 2, viewport, goals)
     expect(half.phase).toBe('tunnel')
     expect(half.phasePercent).toBeCloseTo(50)
   })

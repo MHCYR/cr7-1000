@@ -21,7 +21,7 @@ interface AssemblingPointsProps {
   sizes: Float32Array
   /** Shared animation clock. */
   clock: RefObject<AnimationClock>
-  /** Shared, damped scroll state; its progress drives the tunnel. */
+  /** Shared, damped scroll state: its progress drives the tunnel, its fill the points without one. */
   scroll: RefObject<ScrollState>
   /** xyz tunnel positions in world units: with them the points fly to the tunnel, without them they come toward the camera. */
   tunnel?: Float32Array
@@ -89,7 +89,7 @@ export function AssemblingPoints({ positions, start, delays, colors, sizes, cloc
     values.uSize.value = size
     values.uOutline.value = outline
     values.uViewportHeight.value = state.size.height * state.viewport.dpr
-    values.uProgress.value = scroll.current.progress
+    values.uProgress.value = tunnel ? scroll.current.progress : scroll.current.fill
     if (tunnel) {
       values.uFogNear.value = fog.near
       values.uFogFar.value = fog.far
@@ -106,7 +106,7 @@ export function AssemblingPoints({ positions, start, delays, colors, sizes, cloc
     values.uReach.value = zoom.reach
     values.uFade.value = zoom.fade
     // Order 1 flies last: once it is at reach, fill pixels cost nothing while the camera is in the tunnel.
-    if (points.current) points.current.visible = fillOffset(scroll.current.progress, 1, zoom) < zoom.reach
+    if (points.current) points.current.visible = fillOffset(scroll.current.fill, 1, zoom) < zoom.reach
   })
 
   return (

@@ -24,7 +24,8 @@ export const assemblyVertexShader = /* glsl */ `
   uniform float uInitialOpacity;
   uniform float uSize;
   uniform float uViewportHeight;
-  // 0 with the portrait assembled, 1 with the goal pixels in the tunnel.
+  // Goal pixels: ScrollState.progress, 0 with the portrait assembled, 1 in the tunnel.
+  // Fill pixels: ScrollState.fill, the first viewport of scroll.
   uniform float uProgress;
   #ifdef TUNNEL
   uniform float uFogNear;
