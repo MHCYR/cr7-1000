@@ -2,6 +2,8 @@ import { Canvas } from '@react-three/fiber'
 import { lazy, Suspense, useState } from 'react'
 import { createGoalCardLayer } from './hud/cardWindow.ts'
 import { GoalCards } from './hud/GoalCards.tsx'
+import { GoalIndicator } from './hud/GoalIndicator.tsx'
+import { createCurrentGoal } from './hud/goalIndicator.ts'
 import { es } from './i18n/es.ts'
 import type { PortraitSettings } from './portrait/settings.ts'
 import { GOAL_PIXELS } from './portrait/sample.ts'
@@ -14,15 +16,18 @@ const DevControls = import.meta.env.DEV ? lazy(() => import('./dev/DevControls.t
 function PortraitView({ settings, restart }: { settings?: PortraitSettings; restart?: number }) {
   // The scene moves the mounted card slots and slides their window every frame, outside React.
   const [cards] = useState(createGoalCardLayer)
+  // The scene sets the goal closest to the camera every frame; the indicator rerenders once per goal.
+  const [goal] = useState(createCurrentGoal)
   return (
     <>
       <div className="stage">
         <Canvas camera={{ position: [0, 0, TUNNEL.cameraStart], fov: 50 }} dpr={[1, 2]}>
           <color attach="background" args={['#0a0a0a']} />
-          <Scene settings={settings} restart={restart} cards={cards} />
+          <Scene settings={settings} restart={restart} cards={cards} indicator={goal} />
         </Canvas>
       </div>
       <GoalCards layer={cards} />
+      <GoalIndicator goal={goal} />
       {/* The page scrolls the entry (TUNNEL.entry of a viewport), then the tunnel itself. */}
       <div style={{ height: `calc(${100 + TUNNEL.entry * 100}vh + ${tunnelScroll(GOAL_PIXELS)}px)` }} />
       <h1 className="hud">{es.siteTitle}</h1>

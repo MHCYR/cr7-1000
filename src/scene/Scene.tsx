@@ -4,12 +4,13 @@ import { MathUtils } from 'three'
 import { goles } from '../data/goles.ts'
 import { CARD_DEPTH, CARD_REVEAL, CARD_WINDOW, layoutCards, visibleRange } from '../hud/cardLayout.ts'
 import type { GoalCardLayer } from '../hud/cardWindow.ts'
+import type { CurrentGoal } from '../hud/goalIndicator.ts'
 import { assemblyEnd } from '../portrait/assemble.ts'
 import { PORTRAIT_URL, loadImagePixels } from '../portrait/load.ts'
 import { goalColors } from '../portrait/palette.ts'
 import { type Portrait, samplePortrait } from '../portrait/sample.ts'
 import { type PortraitSettings, buildBuffers, defaultSettings, samplingOptions } from '../portrait/settings.ts'
-import { type ScrollState, TUNNEL, scrollState, tunnelPositions } from '../tunnel/tunnel.ts'
+import { type ScrollState, TUNNEL, currentGoal, scrollState, tunnelPositions } from '../tunnel/tunnel.ts'
 import { AssemblingPoints } from './AssemblingPoints.tsx'
 import { createClock, restartClock, tickClock } from './animationClock.ts'
 
@@ -33,6 +34,8 @@ interface SceneProps {
   restart?: number
   /** Goal card slots, index i for goal i + 1: the scene moves them onto their goals every frame. */
   cards?: GoalCardLayer
+  /** The goal closest to the camera, for the indicator: the scene sets it every frame. */
+  indicator?: CurrentGoal
 }
 
 /**
@@ -43,7 +46,7 @@ interface SceneProps {
  * for the sampling settings and the seed, and its buffers are rebuilt only for the settings
  * that shape them. Duration, initial opacity, fit and the zoom timing just update the shader and the scale.
  */
-export function Scene({ settings = DEFAULT_SETTINGS, restart = 0, cards }: SceneProps) {
+export function Scene({ settings = DEFAULT_SETTINGS, restart = 0, cards, indicator }: SceneProps) {
   const [image, setImage] = useState<ImageData | null>(null)
   const { fillCount, edgeBand, seed } = samplingOptions(settings)
 
@@ -72,10 +75,10 @@ export function Scene({ settings = DEFAULT_SETTINGS, restart = 0, cards }: Scene
   if (sampled && sampled !== shown) setShown(sampled)
   const portrait = sampled ?? shown
 
-  return portrait && <PortraitCloud portrait={portrait} settings={settings} restart={restart} cards={cards} />
+  return portrait && <PortraitCloud portrait={portrait} settings={settings} restart={restart} cards={cards} indicator={indicator} />
 }
 
-function PortraitCloud({ portrait, settings, restart, cards }: { portrait: Portrait; settings: PortraitSettings; restart: number; cards?: GoalCardLayer }) {
+function PortraitCloud({ portrait, settings, restart, cards, indicator }: { portrait: Portrait; settings: PortraitSettings; restart: number; cards?: GoalCardLayer; indicator?: CurrentGoal }) {
   const viewport = useThree((state) => state.viewport)
   const { fit, assembly, initialOpacity } = settings
   const scale = Math.min(viewport.height * fit.height, (viewport.width * fit.width) / portrait.aspect)
@@ -139,7 +142,7 @@ function PortraitCloud({ portrait, settings, restart, cards }: { portrait: Portr
       // GoalCards mounts the window once React rerenders; until then its new slots are skipped.
       const range = visibleRange(current.cameraZ, TUNNEL.separation, CARD_WINDOW, portrait.goals.count)
       cards.window.set(range[0])
-      layoutCards(cards.slots, tunnel, {
+      const inSight = layoutCards(cards.slots, tunnel, {
         cameraZ: current.cameraZ,
         focal: (state.camera.projectionMatrix.elements[5] * height) / 2,
         width,
@@ -148,7 +151,9 @@ function PortraitCloud({ portrait, settings, restart, cards }: { portrait: Portr
         fog: { near: fogNear, far: fogFar },
         cardDepth: CARD_DEPTH,
       }, range)
-    }
+      // The closest card on screen; past the last card, the goal the camera is at.
+      indicator?.set(inSight || currentGoal(current.cameraZ, TUNNEL.separation, portrait.goals.count))
+    } else indicator?.set(currentGoal(current.cameraZ, TUNNEL.separation, portrait.goals.count))
   })
 
   return (

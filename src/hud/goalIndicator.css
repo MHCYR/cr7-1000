@@ -1,0 +1,206 @@
+/* GoalIndicator and ProgressCounter (DESIGN.md): the goal closest to the camera, over the tunnel. */
+
+.goal-indicator {
+  position: fixed;
+  left: 28px;
+  bottom: 28px;
+  z-index: 1;
+  display: grid;
+  gap: var(--space-6);
+  width: 380px;
+  max-width: calc(100vw - 56px);
+  padding: var(--space-6);
+  color: var(--chalk);
+  font-family: var(--font-sans);
+  transition: opacity 0.2s ease-out, visibility 0.2s;
+}
+
+/* With the portrait, before the camera reaches goal 1. */
+.goal-indicator--hidden {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.goal-indicator__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+/* Stickers: flat, square, hard-edged, slapped on slightly crooked. */
+.goal-indicator__sticker {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 4px 10px 5px;
+  border: var(--border-brutal) solid var(--ink);
+  border-radius: var(--radius-brutal);
+  transform: rotate(var(--sticker-tilt));
+  font-family: var(--font-tag);
+  font-size: 20px;
+  line-height: 22px;
+  color: var(--ink);
+  background: var(--spray);
+  box-shadow: var(--shadow-hard-metro);
+}
+
+.goal-indicator__sticker--missing {
+  color: var(--chalk);
+  background: var(--wall);
+  border-style: dashed;
+  border-color: var(--concrete);
+  box-shadow: var(--shadow-hard-concrete);
+}
+
+.goal-indicator__sticker .goal-card__ring {
+  width: 10px;
+  height: 10px;
+  margin: 0;
+}
+
+/* The number: a block-letter throw-up, chalk face with a hard ink and metro extrusion. */
+.goal-indicator__number {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 104px;
+  line-height: 0.9;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  color: var(--chalk);
+  text-shadow: 3px 3px 0 var(--ink), 6px 6px 0 var(--metro);
+}
+
+/* Missing: outline only, a sketch not painted yet. */
+.goal-indicator--missing .goal-indicator__number {
+  font-family: var(--font-display-outline);
+  color: var(--concrete);
+  text-shadow: none;
+}
+
+.goal-indicator__data {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.goal-indicator__row {
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  gap: var(--space-3);
+  align-items: baseline;
+}
+
+.goal-indicator__row dt {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--chalk-muted);
+}
+
+.goal-indicator__row dd {
+  min-width: 0;
+  margin: 0;
+  font-size: 17px;
+  line-height: 22px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--chalk);
+}
+
+.goal-indicator__note {
+  margin: 0;
+  font-size: 15px;
+  line-height: 21px;
+  font-weight: 600;
+  color: var(--chalk-muted);
+}
+
+/* ---- ProgressCounter: «978 de 1000 goles» over a flat bar. It moves with the data, never with the scroll. ---- */
+.goal-counter {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.goal-counter__text {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 15px;
+  line-height: 18px;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--chalk);
+}
+
+.goal-counter__text span {
+  color: var(--chalk-muted);
+}
+
+.goal-counter__bar {
+  position: relative;
+  height: 14px;
+  background: var(--spray-deep);
+  border: var(--border-brutal) solid var(--ink);
+  border-radius: var(--radius-brutal);
+  box-shadow: var(--shadow-hard-metro);
+}
+
+.goal-counter__fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--spray);
+  border-right: var(--border-brutal) solid var(--ink);
+}
+
+/* ---- Mobile: a compact strip along the bottom ---- */
+@media (max-width: 639px) {
+  .goal-indicator {
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+    width: auto;
+    max-width: none;
+    padding: var(--space-4);
+    gap: var(--space-4);
+    grid-template-columns: auto 1fr;
+    align-items: end;
+  }
+
+  .goal-indicator__tags,
+  .goal-indicator__note,
+  .goal-counter {
+    grid-column: 1 / -1;
+  }
+
+  .goal-indicator__sticker {
+    font-size: 17px;
+    line-height: 20px;
+  }
+
+  .goal-indicator__number {
+    font-size: 64px;
+    text-shadow: 2px 2px 0 var(--ink), 4px 4px 0 var(--metro);
+  }
+
+  .goal-indicator__data {
+    gap: var(--space-1);
+  }
+
+  .goal-indicator__row {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .goal-indicator__row dd {
+    font-size: 15px;
+    line-height: 20px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .goal-indicator {
+    transition: none;
+  }
+}
