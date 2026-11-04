@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { FILL_ZOOM, TUNNEL, currentGoal, entryScroll, fillOffset, fillOrder, nearFade, scrollHeight, scrollReadout, scrollState, tunnelScroll, TUNNEL_FOG, tunnelFade, tunnelPositions } from './tunnel.ts'
+import { FILL_ZOOM, GOAL_REVEAL, TUNNEL, currentGoal, entryScroll, fillOffset, fillOrder, goalReveal, nearFade, scrollHeight, scrollReadout, scrollState, tunnelScroll, TUNNEL_FOG, tunnelFade, tunnelPositions } from './tunnel.ts'
 
 const { separation } = TUNNEL
 
@@ -258,5 +258,21 @@ describe('scrollReadout', () => {
     expect(scrollReadout(bottom, viewport, goals)).toEqual({ phase: 'tunnel', phasePercent: 100, goal: 1000, globalPercent: 100 })
     expect(scrollReadout(bottom + 500, viewport, goals)).toEqual(scrollReadout(bottom, viewport, goals))
     expect(scrollReadout(-50, viewport, goals)).toEqual(scrollReadout(0, viewport, goals))
+  })
+})
+
+describe('goalReveal', () => {
+  it('disguises the goals in the assembled portrait', () => {
+    expect(goalReveal(0)).toEqual({ reveal: 0, alpha: 1 })
+  })
+
+  it('hides them while they fly, until they reach the tunnel', () => {
+    for (const progress of [GOAL_REVEAL.hide, 0.3, GOAL_REVEAL.start]) expect(goalReveal(progress)).toEqual({ reveal: 0, alpha: 0 })
+  })
+
+  it('shows them as goals once in the tunnel, before the cards', () => {
+    expect(goalReveal(GOAL_REVEAL.end)).toEqual({ reveal: 1, alpha: 1 })
+    expect(goalReveal(1)).toEqual({ reveal: 1, alpha: 1 })
+    expect(GOAL_REVEAL.end).toBeLessThanOrEqual(1)
   })
 })

@@ -1,5 +1,5 @@
 // GPU side of the entry animation and the tunnel. Mirrors assemblyOffset in
-// src/portrait/assemble.ts, and fillOffset, nearFade and tunnelFade in src/tunnel/tunnel.ts, and the card hand-off in src/hud/cardLayout.ts: keep them in
+// src/portrait/assemble.ts, and fillOffset, nearFade and tunnelFade in src/tunnel/tunnel.ts, goalReveal in src/tunnel/tunnel.ts, and the card hand-off in src/hud/cardLayout.ts: keep them in
 // sync. With TUNNEL defined (goal pixels), uProgress flies each point from the portrait to
 // aTunnel, in world units (src/tunnel/tunnel.ts); without it (fill pixels), uProgress brings
 // the whole image toward the camera and then each point past it in aOrder, fading it out as it
@@ -13,6 +13,8 @@ export const assemblyVertexShader = /* glsl */ `
   attribute vec3 aColor;
   #ifdef TUNNEL
   attribute vec3 aTunnel;
+  // Photo color at the goal's cell: the goal passes for fill until it is revealed.
+  attribute vec3 aPhotoColor;
   #else
   // Fly-out order of a fill pixel, in [0, 1] (fillOrder).
   attribute float aOrder;
@@ -36,6 +38,10 @@ export const assemblyVertexShader = /* glsl */ `
   uniform vec2 uHandOff;
   // Depth past which the goal pixels are back instead of the cards (CARD_DEPTH).
   uniform vec2 uCardDepth;
+  // GOAL_REVEAL: progress by which the goals fade out (x), then show as goals (y to z).
+  uniform vec3 uReveal;
+  // Goal pixel size in the portrait, as a multiple of its size as a goal: the size of a fill pixel.
+  uniform float uHiddenScale;
   #else
   // FILL_ZOOM: timings as shares of uProgress, lengths in world units.
   uniform float uZoomEnd;
@@ -45,9 +51,11 @@ export const assemblyVertexShader = /* glsl */ `
   uniform float uReach;
   uniform float uFade;
   #endif
+  uniform float uOutline;
 
   varying vec3 vColor;
   varying float vAlpha;
+  varying float vOutline;
 
   void main() {
     float local = clamp((uTime - aDelay) / max(uDuration, 0.0001), 0.0, 1.0);
@@ -69,6 +77,7 @@ export const assemblyVertexShader = /* glsl */ `
     gl_PointSize = uSize * aSize * projectionMatrix[1][1] * uViewportHeight * 0.5 / max(depth, 0.0001);
 
     vColor = aColor;
+    vOutline = uOutline;
     // Faint like a starfield while scattered, solid once in the portrait.
     vAlpha = mix(uInitialOpacity, 1.0, offset);
     #ifdef TUNNEL
@@ -77,6 +86,12 @@ export const assemblyVertexShader = /* glsl */ `
     // (src/hud/GoalCards.tsx); the farther ones stay pixels, with no gap between the two.
     vAlpha *= 1.0 - smoothstep(uHandOff.x, uHandOff.y, uProgress) * (1.0 - smoothstep(uCardDepth.x, uCardDepth.y, depth));
     gl_PointSize *= mix(1.0, uTunnelScale, smoothstep(0.0, 1.0, uProgress));
+    // goalReveal (src/tunnel/tunnel.ts): fill-like in the portrait, a goal from uReveal.y on.
+    float reveal = smoothstep(uReveal.y, uReveal.z, uProgress);
+    vAlpha *= max(1.0 - smoothstep(0.0, uReveal.x, uProgress), reveal);
+    vColor = mix(aPhotoColor, aColor, reveal);
+    vOutline = uOutline * reveal;
+    gl_PointSize *= mix(uHiddenScale, 1.0, reveal);
     #else
     vAlpha *= smoothstep(0.0, uFade, depth);
     #endif
@@ -86,16 +101,15 @@ export const assemblyVertexShader = /* glsl */ `
 `
 
 export const assemblyFragmentShader = /* glsl */ `
-  // Width of the dark outline, as a share of the point side (0 for none).
-  uniform float uOutline;
-
   varying vec3 vColor;
   varying float vAlpha;
+  // Width of the dark outline, as a share of the point side (0 for none).
+  varying float vOutline;
 
   void main() {
     // The outline keeps goal pixels apart from fill pixels of a similar color.
     vec2 edge = min(gl_PointCoord, 1.0 - gl_PointCoord);
-    float outline = step(min(edge.x, edge.y), uOutline);
+    float outline = step(min(edge.x, edge.y), vOutline);
     gl_FragColor = vec4(mix(vColor, vColor * 0.2, outline), vAlpha);
   }
 `

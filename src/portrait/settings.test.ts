@@ -20,7 +20,7 @@ const fill = {
   colors: new Float32Array(9),
   edge: new Float32Array([1, 0.5, 0]),
 }
-const portrait = { aspect: 1, cellSize: 0.01, fill, goals: { count: 4, positions: new Float32Array(12) } }
+const portrait = { aspect: 1, cellSize: 0.01, fill, goals: { count: 4, positions: new Float32Array(12), colors: new Float32Array(12) } }
 
 describe('defaultSettings', () => {
   it('takes every value from the current constants', () => {

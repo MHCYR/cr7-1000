@@ -64,6 +64,15 @@ describe('samplePortrait', () => {
     for (const point of points(goals.positions)) expect(fillKeys.has(point.join())).toBe(false)
   })
 
+  it('gives each goal pixel the photo color of its cell', () => {
+    const halves = makeImage(200, 200, (x) => (x < 100 ? [255, 0, 0, 255] : [0, 0, 255, 255]))
+    const { goals } = samplePortrait(halves, { fillCount: 8000 })
+    expect(goals.colors).toHaveLength(goals.count * 3)
+    points(goals.positions).forEach(([x], i) => {
+      expect(Array.from(goals.colors.slice(i * 3, i * 3 + 3))).toEqual(x < 0 ? [1, 0, 0] : [0, 0, 1])
+    })
+  })
+
   it('follows the requested fill density', () => {
     for (const fillCount of [5000, 20000]) {
       const { fill } = samplePortrait(opaque, { fillCount })

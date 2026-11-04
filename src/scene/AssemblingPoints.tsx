@@ -1,13 +1,15 @@
 import { useFrame } from '@react-three/fiber'
 import { type RefObject, useRef, useState } from 'react'
-import { type Points, type ShaderMaterial, Vector2 } from 'three'
-import { type FillZoom, type ScrollState, type TunnelFog, TUNNEL_FOG, fillOffset } from '../tunnel/tunnel.ts'
+import { type Points, type ShaderMaterial, Vector2, Vector3 } from 'three'
+import { type FillZoom, type GoalReveal, type ScrollState, type TunnelFog, TUNNEL_FOG, fillOffset } from '../tunnel/tunnel.ts'
 import type { AnimationClock } from './animationClock.ts'
 import { assemblyFragmentShader, assemblyVertexShader } from './assemblyShader.ts'
 
 /** Past the end of the scroll: the points never hand off. */
 const NO_HAND_OFF = { start: 2, end: 3 } as const
 const NO_CARD_DEPTH = { start: 0, end: 0 } as const
+/** Shown as given from the start: the points are never disguised. */
+const NO_REVEAL: GoalReveal = { hide: 1, start: -2, end: -1 }
 
 interface AssemblingPointsProps {
   /** Final xyz positions in the portrait. */
@@ -35,6 +37,15 @@ interface AssemblingPointsProps {
   cardDepth?: { start: number; end: number }
   /** How the points come toward the camera when there is no tunnel. */
   zoom?: FillZoom
+  /**
+   * With `tunnel`: sRGB triplets the points wear in the portrait, at `hiddenScale` times their
+   * size and without outline, until `reveal` shows them with `colors`.
+   */
+  photoColors?: Float32Array
+  /** Progress by which disguised points fade out and then show as they are (GOAL_REVEAL). */
+  reveal?: GoalReveal
+  /** Point size while disguised, as a multiple of its size once revealed. */
+  hiddenScale?: number
   /** Fly-out order of each point toward the camera, in [0, 1]; needed with `zoom`. */
   order?: Float32Array
   /** Base point side, in world units. */
@@ -52,7 +63,7 @@ interface AssemblingPointsProps {
  * One THREE.Points (one draw call) whose points fly from `start` to `positions`, and on scroll
  * either to `tunnel` or toward the camera and past it.
  */
-export function AssemblingPoints({ positions, start, delays, colors, sizes, clock, scroll, tunnel, fog = TUNNEL_FOG, tunnelScale = 1, handOff = NO_HAND_OFF, cardDepth = NO_CARD_DEPTH, zoom, order, size, outline = 0, duration, initialOpacity, renderOrder }: AssemblingPointsProps) {
+export function AssemblingPoints({ positions, start, delays, colors, sizes, clock, scroll, tunnel, fog = TUNNEL_FOG, tunnelScale = 1, handOff = NO_HAND_OFF, cardDepth = NO_CARD_DEPTH, photoColors, reveal = NO_REVEAL, hiddenScale = 1, zoom, order, size, outline = 0, duration, initialOpacity, renderOrder }: AssemblingPointsProps) {
   const points = useRef<Points>(null)
   const material = useRef<ShaderMaterial>(null)
   // One object for the life of the component: the dev controls only change its values, so
@@ -76,6 +87,8 @@ export function AssemblingPoints({ positions, start, delays, colors, sizes, cloc
     uTunnelScale: { value: tunnelScale },
     uHandOff: { value: new Vector2(handOff.start, handOff.end) },
     uCardDepth: { value: new Vector2(cardDepth.start, cardDepth.end) },
+    uReveal: { value: new Vector3(reveal.hide, reveal.start, reveal.end) },
+    uHiddenScale: { value: hiddenScale },
   }))
   // Fixed per mount: a tunnel is either given or not, so the shader compiles once.
   const [defines] = useState(() => (tunnel ? { TUNNEL: '' } : {}))
@@ -96,6 +109,8 @@ export function AssemblingPoints({ positions, start, delays, colors, sizes, cloc
       values.uTunnelScale.value = tunnelScale
       values.uHandOff.value.set(handOff.start, handOff.end)
       values.uCardDepth.value.set(cardDepth.start, cardDepth.end)
+      values.uReveal.value.set(reveal.hide, reveal.start, reveal.end)
+      values.uHiddenScale.value = hiddenScale
       return
     }
     if (!zoom) return
@@ -119,6 +134,7 @@ export function AssemblingPoints({ positions, start, delays, colors, sizes, cloc
         <bufferAttribute attach="attributes-aColor" args={[colors, 3]} />
         <bufferAttribute attach="attributes-aSize" args={[sizes, 1]} />
         {tunnel && <bufferAttribute attach="attributes-aTunnel" args={[tunnel, 3]} />}
+        {tunnel && <bufferAttribute attach="attributes-aPhotoColor" args={[photoColors ?? colors, 3]} />}
         {order && <bufferAttribute attach="attributes-aOrder" args={[order, 1]} />}
       </bufferGeometry>
       <shaderMaterial

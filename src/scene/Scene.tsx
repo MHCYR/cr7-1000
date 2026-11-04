@@ -11,7 +11,7 @@ import { goalColors } from '../portrait/palette.ts'
 import { choosePortrait } from '../portrait/pick.ts'
 import { type Portrait, samplePortrait } from '../portrait/sample.ts'
 import { type PortraitSettings, buildBuffers, defaultSettings, samplingOptions } from '../portrait/settings.ts'
-import { type ScrollState, TUNNEL, currentGoal, scrollState, tunnelPositions } from '../tunnel/tunnel.ts'
+import { GOAL_REVEAL, type ScrollState, TUNNEL, currentGoal, scrollState, tunnelPositions } from '../tunnel/tunnel.ts'
 import { AssemblingPoints } from './AssemblingPoints.tsx'
 import { createClock, restartClock, tickClock } from './animationClock.ts'
 
@@ -202,6 +202,9 @@ function PortraitCloud({ portrait, settings, restart, cards, indicator }: { port
         start={buffers.goalStart}
         delays={buffers.goalDelays}
         colors={goals.colors}
+        photoColors={portrait.goals.colors}
+        reveal={GOAL_REVEAL}
+        hiddenScale={1 / GOAL_SIZE}
         sizes={goals.sizes}
         clock={clock}
         scroll={scroll}
