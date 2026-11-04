@@ -5,21 +5,21 @@
 import { es } from '../i18n/es.ts'
 import { GOAL_TARGET } from './goalCard.ts'
 
-/** The goal closest to the camera, shared outside React; 0 before the camera reaches goal 1. */
-export interface CurrentGoal {
+/** A number the scene sets every frame, outside React; its listeners hear only the changes. */
+export interface SharedNumber {
   get(): number
-  set(goal: number): void
+  set(value: number): void
   subscribe(listener: () => void): () => void
 }
 
-export function createCurrentGoal(): CurrentGoal {
-  let goal = 0
+export function createSharedNumber(): SharedNumber {
+  let value = 0
   const listeners = new Set<() => void>()
   return {
-    get: () => goal,
+    get: () => value,
     set(next) {
-      if (next === goal) return
-      goal = next
+      if (next === value) return
+      value = next
       for (const listener of listeners) listener()
     },
     subscribe(listener) {
@@ -27,6 +27,22 @@ export function createCurrentGoal(): CurrentGoal {
       return () => void listeners.delete(listener)
     },
   }
+}
+
+/** The goal closest to the camera that is on screen; 0 before the cards show. */
+export type CurrentGoal = SharedNumber
+export const createCurrentGoal = createSharedNumber
+
+/** What the scene tells the indicator every frame. */
+export interface IndicatorLink {
+  /** The current goal: the indicator rerenders when it changes. */
+  goal: CurrentGoal
+  /** The same goal, moving continuously with the scroll: the photos fade with it. */
+  position: SharedNumber
+}
+
+export function createIndicatorLink(): IndicatorLink {
+  return { goal: createSharedNumber(), position: createSharedNumber() }
 }
 
 export interface ProgressCounter {

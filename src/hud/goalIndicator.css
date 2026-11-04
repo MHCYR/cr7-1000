@@ -40,16 +40,11 @@
   box-shadow: var(--shadow-hard-spray);
 }
 
-/* Each photo is a layer; a new one fades in over the last one shown. */
+/* Each photo is a layer; around a change of year the scroll sets both opacities. */
 .goal-indicator__photo-layer {
   position: absolute;
   inset: 0;
-  opacity: 0;
-  transition: opacity 0.6s ease-in-out;
-}
-
-.goal-indicator__photo-layer--shown {
-  opacity: 1;
+  will-change: opacity;
 }
 
 .goal-indicator__photo-layer img {
@@ -249,8 +244,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .goal-indicator,
-  .goal-counter__fill,
-  .goal-indicator__photo-layer {
+  .goal-counter__fill {
     transition: none;
   }
 }

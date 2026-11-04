@@ -4,7 +4,7 @@ import { MathUtils } from 'three'
 import { goles } from '../data/goles.ts'
 import { CARD_DEPTH, CARD_REVEAL, CARD_WINDOW, layoutCards, visibleRange } from '../hud/cardLayout.ts'
 import type { GoalCardLayer } from '../hud/cardWindow.ts'
-import type { CurrentGoal } from '../hud/goalIndicator.ts'
+import type { IndicatorLink } from '../hud/goalIndicator.ts'
 import { assemblyEnd } from '../portrait/assemble.ts'
 import { PORTRAIT_URL, loadImagePixels } from '../portrait/load.ts'
 import { goalColors } from '../portrait/palette.ts'
@@ -22,6 +22,13 @@ const GOAL_OUTLINE = 0.16
 /** How fast the scene catches up with the scroll: wheel steps glide instead of jumping. */
 const SCROLL_DAMPING = 8
 
+/**
+ * How fast the indicator's position follows the gap between the camera and the current goal,
+ * which jumps by one goal each time a card leaves the screen: damping it keeps the position
+ * continuous, so the photos fade smoothly with the scroll.
+ */
+const LEAD_DAMPING = 4
+
 /** One object for every render, so a Scene without settings never sees them change. */
 const DEFAULT_SETTINGS = defaultSettings()
 
@@ -34,8 +41,8 @@ interface SceneProps {
   restart?: number
   /** Goal card slots, index i for goal i + 1: the scene moves them onto their goals every frame. */
   cards?: GoalCardLayer
-  /** The goal closest to the camera, for the indicator: the scene sets it every frame. */
-  indicator?: CurrentGoal
+  /** The current goal and its continuous position, for the indicator: set every frame. */
+  indicator?: IndicatorLink
 }
 
 /**
@@ -78,7 +85,7 @@ export function Scene({ settings = DEFAULT_SETTINGS, restart = 0, cards, indicat
   return portrait && <PortraitCloud portrait={portrait} settings={settings} restart={restart} cards={cards} indicator={indicator} />
 }
 
-function PortraitCloud({ portrait, settings, restart, cards, indicator }: { portrait: Portrait; settings: PortraitSettings; restart: number; cards?: GoalCardLayer; indicator?: CurrentGoal }) {
+function PortraitCloud({ portrait, settings, restart, cards, indicator }: { portrait: Portrait; settings: PortraitSettings; restart: number; cards?: GoalCardLayer; indicator?: IndicatorLink }) {
   const viewport = useThree((state) => state.viewport)
   const { fit, assembly, initialOpacity } = settings
   const scale = Math.min(viewport.height * fit.height, (viewport.width * fit.width) / portrait.aspect)
@@ -118,6 +125,16 @@ function PortraitCloud({ portrait, settings, restart, cards, indicator }: { port
   )
   // Read and damped every frame, outside React: scrolling never rerenders the scene.
   const scroll = useRef<ScrollState>({ progress: 0, fill: 0, cameraZ: TUNNEL.cameraStart })
+  // Goals between the camera and the current goal, damped (LEAD_DAMPING).
+  const lead = useRef(0)
+
+  function shareGoal(goal: number, delta: number) {
+    if (!indicator) return
+    indicator.goal.set(goal)
+    const camera = -scroll.current.cameraZ / TUNNEL.separation
+    lead.current = MathUtils.damp(lead.current, goal > 0 ? goal - camera : 0, LEAD_DAMPING, delta)
+    indicator.position.set(camera + lead.current)
+  }
 
   useFrame((state, delta) => {
     if (restarted.current !== restart) {
@@ -152,8 +169,8 @@ function PortraitCloud({ portrait, settings, restart, cards, indicator }: { port
         cardDepth: CARD_DEPTH,
       }, range)
       // The closest card on screen; past the last card, the goal the camera is at.
-      indicator?.set(inSight || currentGoal(current.cameraZ, TUNNEL.separation, portrait.goals.count))
-    } else indicator?.set(currentGoal(current.cameraZ, TUNNEL.separation, portrait.goals.count))
+      shareGoal(inSight || currentGoal(current.cameraZ, TUNNEL.separation, portrait.goals.count), delta)
+    } else shareGoal(currentGoal(current.cameraZ, TUNNEL.separation, portrait.goals.count), delta)
   })
 
   return (

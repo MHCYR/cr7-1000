@@ -94,3 +94,49 @@ export function cristianoData(
 function clubOrNone(id: string | null, clubes: Clubes): CardClub | null {
   return id === null ? null : cardClub(clubes[id])
 }
+
+/** The first goal of each year with goals, in order: where the photo changes. */
+export interface YearStart {
+  year: number
+  /** Number of its first goal. */
+  start: number
+}
+
+export function yearStarts(goles: Gol[]): YearStart[] {
+  const starts: YearStart[] = []
+  for (const gol of goles) {
+    const year = Number(gol.fecha.slice(0, 4))
+    if (starts.at(-1)?.year !== year) starts.push({ year, start: gol.numero })
+  }
+  return starts
+}
+
+/** Goals of scroll over which one year's photo hands over to the next, centered on its first goal. */
+export const PHOTO_BLEND_GOALS = 6
+
+/** Two photos at once: `from` with opacity 1 - t under `to` with opacity t. Same year when steady. */
+export interface PhotoBlend {
+  from: number
+  to: number
+  t: number
+}
+
+/**
+ * The photos at `position`, a goal number that moves continuously with the scroll: around the
+ * first goal of each year the photo of the year before fades out while the new one fades in,
+ * over PHOTO_BLEND_GOALS goals or half the way to the next change, whichever is shorter. Tied to
+ * the scroll, not to time, so it stops halfway when the scroll does, and fast scrolling never
+ * piles up photos: there are never more than two.
+ */
+export function photoBlend(position: number, starts: readonly YearStart[], window: number = PHOTO_BLEND_GOALS): PhotoBlend {
+  const steady = (year: number): PhotoBlend => ({ from: year, to: year, t: 1 })
+  if (starts.length === 0) return steady(0)
+  for (let k = 1; k < starts.length; k++) {
+    const change = starts[k].start
+    const next = k + 1 < starts.length ? starts[k + 1].start - change : window
+    const half = Math.min(window, change - starts[k - 1].start, next) / 2
+    if (position < change - half) return steady(starts[k - 1].year)
+    if (position < change + half) return { from: starts[k - 1].year, to: starts[k].year, t: (position - (change - half)) / (2 * half) }
+  }
+  return steady(starts[starts.length - 1].year)
+}

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Clubes, Gol } from '../data/gol.ts'
 import { clubes as realClubes, goles as realGoles } from '../data/goles.ts'
-import { PHOTOS, ageOn, clubOn, cristianoData } from './cristiano.ts'
+import { PHOTOS, ageOn, clubOn, cristianoData, photoBlend, yearStarts } from './cristiano.ts'
 
 const clubes: Clubes = {
   '985': { nombre: 'Manchester United', escudo: '/escudos/985.webp' },
@@ -97,5 +97,57 @@ describe('PHOTOS', () => {
     const missing = Object.values(PHOTOS).filter((src) => !files.includes(src))
 
     expect(missing).toEqual([])
+  })
+})
+
+describe('yearStarts', () => {
+  it('gives the first goal of each year', () => {
+    expect(yearStarts(goles)).toEqual([
+      { year: 2006, start: 1 },
+      { year: 2007, start: 2 },
+      { year: 2022, start: 3 },
+    ])
+  })
+})
+
+describe('photoBlend', () => {
+  const starts = [
+    { year: 2013, start: 330 },
+    { year: 2014, start: 399 },
+    { year: 2015, start: 460 },
+  ]
+
+  it('shows one photo away from a change of year', () => {
+    expect(photoBlend(380, starts)).toEqual({ from: 2013, to: 2013, t: 1 })
+    expect(photoBlend(420, starts)).toEqual({ from: 2014, to: 2014, t: 1 })
+    expect(photoBlend(500, starts)).toEqual({ from: 2015, to: 2015, t: 1 })
+  })
+
+  it('fades one year into the next with the scroll, centered on its first goal', () => {
+    expect(photoBlend(396, starts)).toEqual({ from: 2013, to: 2014, t: 0 })
+    expect(photoBlend(397.5, starts)).toEqual({ from: 2013, to: 2014, t: 0.25 })
+    expect(photoBlend(399, starts)).toEqual({ from: 2013, to: 2014, t: 0.5 })
+    expect(photoBlend(401.5, starts).t).toBeCloseTo(0.917)
+    expect(photoBlend(402, starts)).toEqual({ from: 2014, to: 2014, t: 1 })
+  })
+
+  it('shortens the fade when two changes are close', () => {
+    const close = [
+      { year: 2002, start: 1 },
+      { year: 2003, start: 6 },
+      { year: 2004, start: 7 },
+    ]
+
+    expect(photoBlend(5.4, close)).toEqual({ from: 2002, to: 2002, t: 1 })
+    expect(photoBlend(5.5, close)).toEqual({ from: 2002, to: 2003, t: 0 })
+    expect(photoBlend(6, close)).toEqual({ from: 2002, to: 2003, t: 0.5 })
+    expect(photoBlend(6.5, close)).toEqual({ from: 2003, to: 2004, t: 0 })
+    expect(photoBlend(7, close)).toEqual({ from: 2003, to: 2004, t: 0.5 })
+  })
+
+  it('finds a change of year for every year from 2002 to 2026', () => {
+    const real = yearStarts(realGoles)
+
+    expect(real.map(({ year }) => year)).toEqual(Array.from({ length: 25 }, (_, i) => 2002 + i))
   })
 })
