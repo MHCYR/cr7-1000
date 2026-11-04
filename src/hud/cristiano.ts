@@ -4,6 +4,7 @@
 
 import type { Clubes, Gol } from '../data/gol.ts'
 import { es } from '../i18n/es.ts'
+import { smoothstep } from '../tunnel/tunnel.ts'
 import { type CardClub, GOAL_TARGET, cardClub } from './goalCard.ts'
 
 /** Cristiano Ronaldo's date of birth, ISO calendar date. */
@@ -112,7 +113,7 @@ export function yearStarts(goles: Gol[]): YearStart[] {
 }
 
 /** Goals of scroll over which one year's photo hands over to the next, centered on its first goal. */
-export const PHOTO_BLEND_GOALS = 6
+export const PHOTO_BLEND_GOALS = 24
 
 /** Two photos at once: `from` with opacity 1 - t under `to` with opacity t. Same year when steady. */
 export interface PhotoBlend {
@@ -124,7 +125,8 @@ export interface PhotoBlend {
 /**
  * The photos at `position`, a goal number that moves continuously with the scroll: around the
  * first goal of each year the photo of the year before fades out while the new one fades in,
- * over PHOTO_BLEND_GOALS goals or half the way to the next change, whichever is shorter. Tied to
+ * over PHOTO_BLEND_GOALS goals or half the way to the next change, whichever is shorter, easing in
+ * and out (smoothstep) so it starts and ends gently. Tied to
  * the scroll, not to time, so it stops halfway when the scroll does, and fast scrolling never
  * piles up photos: there are never more than two.
  */
@@ -136,7 +138,7 @@ export function photoBlend(position: number, starts: readonly YearStart[], windo
     const next = k + 1 < starts.length ? starts[k + 1].start - change : window
     const half = Math.min(window, change - starts[k - 1].start, next) / 2
     if (position < change - half) return steady(starts[k - 1].year)
-    if (position < change + half) return { from: starts[k - 1].year, to: starts[k].year, t: (position - (change - half)) / (2 * half) }
+    if (position < change + half) return { from: starts[k - 1].year, to: starts[k].year, t: smoothstep(change - half, change + half, position) }
   }
   return steady(starts[starts.length - 1].year)
 }

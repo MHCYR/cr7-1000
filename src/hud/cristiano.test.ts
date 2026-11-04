@@ -123,12 +123,17 @@ describe('photoBlend', () => {
     expect(photoBlend(500, starts)).toEqual({ from: 2015, to: 2015, t: 1 })
   })
 
-  it('fades one year into the next with the scroll, centered on its first goal', () => {
-    expect(photoBlend(396, starts)).toEqual({ from: 2013, to: 2014, t: 0 })
-    expect(photoBlend(397.5, starts)).toEqual({ from: 2013, to: 2014, t: 0.25 })
+  it('fades one year into the next over 24 goals of scroll, centered on its first goal', () => {
+    expect(photoBlend(386.9, starts)).toEqual({ from: 2013, to: 2013, t: 1 })
+    expect(photoBlend(387, starts)).toEqual({ from: 2013, to: 2014, t: 0 })
     expect(photoBlend(399, starts)).toEqual({ from: 2013, to: 2014, t: 0.5 })
-    expect(photoBlend(401.5, starts).t).toBeCloseTo(0.917)
-    expect(photoBlend(402, starts)).toEqual({ from: 2014, to: 2014, t: 1 })
+    expect(photoBlend(411, starts)).toEqual({ from: 2014, to: 2014, t: 1 })
+  })
+
+  it('eases in and out: slow at both ends, fastest at the first goal of the year', () => {
+    expect(photoBlend(393, starts).t).toBeCloseTo(0.156)
+    expect(photoBlend(405, starts).t).toBeCloseTo(0.844)
+    expect(photoBlend(388, starts).t).toBeLessThan(1 / 24)
   })
 
   it('shortens the fade when two changes are close', () => {
