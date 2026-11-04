@@ -45,8 +45,11 @@ export interface Portrait {
    * falling to 0 at `edgeBand` (EDGE_BAND by default) cells inside.
    */
   fill: { count: number; positions: Float32Array; colors: Float32Array; edge: Float32Array }
-  /** Goal pixel i holds goal number i + 1: chronological from the feet to the head. */
-  goals: { count: number; positions: Float32Array }
+  /**
+   * Goal pixel i holds goal number i + 1: chronological from the feet to the head. `colors` are
+   * the photo's at each goal cell, so a goal can pass for fill until it is revealed.
+   */
+  goals: { count: number; positions: Float32Array; colors: Float32Array }
 }
 
 interface Cell {
@@ -108,8 +111,11 @@ export function samplePortrait(image: ImageLike, options: PortraitOptions): Port
     fill.edge[i] = edgeBand > 0 ? Math.max(0, 1 - (cell.depth - 1) / edgeBand) : 0
   })
 
-  const goals = { count: goalCount, positions: new Float32Array(goalCount * 3) }
-  goalCells.forEach((cell, i) => goals.positions.set([cell.x, cell.y, 0], i * 3))
+  const goals = { count: goalCount, positions: new Float32Array(goalCount * 3), colors: new Float32Array(goalCount * 3) }
+  goalCells.forEach((cell, i) => {
+    goals.positions.set([cell.x, cell.y, 0], i * 3)
+    goals.colors.set([data[cell.pixel] / 255, data[cell.pixel + 1] / 255, data[cell.pixel + 2] / 255], i * 3)
+  })
 
   return { aspect: width / height, cellSize: step / height, fill, goals }
 }

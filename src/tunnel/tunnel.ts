@@ -114,6 +114,26 @@ export function tunnelFade(depth: number, fog: TunnelFog = TUNNEL_FOG): number {
 }
 
 /**
+ * When the goal pixels show as goals, as shares of the entry progress. In the assembled portrait
+ * they pass for fill (photo color, fill size, no outline); they fade out once they start to fly,
+ * by `hide`, and come back as goals (palette color, full size, outline) from `start` to `end`,
+ * already in the tunnel, before the cards take over (CARD_REVEAL).
+ */
+export const GOAL_REVEAL = { hide: 0.15, start: 0.6, end: 0.9 } as const
+
+export type GoalReveal = { hide: number; start: number; end: number }
+
+/**
+ * How much a goal pixel shows as a goal at this progress (`reveal`: 0 photo color, 1 palette
+ * color) and its opacity factor (`alpha`). The vertex shader applies the same formula
+ * (src/scene/assemblyShader.ts).
+ */
+export function goalReveal(progress: number, timing: GoalReveal = GOAL_REVEAL): { reveal: number; alpha: number } {
+  const reveal = smoothstep(timing.start, timing.end, progress)
+  return { reveal, alpha: Math.max(1 - smoothstep(0, timing.hide, progress), reveal) }
+}
+
+/**
  * How far toward the camera (+Z) a fill pixel is at this progress, from the portrait. Up to
  * zoomEnd every pixel moves the same, so the perspective grows the image from the center of
  * the screen; then each one flies past the camera, those of lower `order` first, while the rest
