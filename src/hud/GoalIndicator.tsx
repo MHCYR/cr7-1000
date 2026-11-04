@@ -8,7 +8,7 @@ import './goalIndicator.css'
 
 /**
  * The indicator over the tunnel (#5): the goal closest to the camera in large type, its team,
- * rival and date, and the counter of goals scored toward the target. It is hidden with the
+ * rival and date, and a counter that fills up to it as the page scrolls. It is hidden with the
  * portrait, before the camera reaches goal 1, and rerenders only when the current goal changes.
  */
 export function GoalIndicator({ goal }: { goal: CurrentGoal }) {
@@ -18,7 +18,7 @@ export function GoalIndicator({ goal }: { goal: CurrentGoal }) {
   if (current > 0 && current !== shown) setShown(current)
 
   const card = useMemo(() => goalCardData(shown, goles, clubes), [shown])
-  const counter = useMemo(() => progressCounter(goles.length), [])
+  const counter = progressCounter(shown, goles.length)
   const hidden = current === 0
   const className = ['goal-indicator', 'hud-glass', !card.scored && 'goal-indicator--missing', hidden && 'goal-indicator--hidden']
     .filter(Boolean)
@@ -33,10 +33,11 @@ export function GoalIndicator({ goal }: { goal: CurrentGoal }) {
       {card.scored ? <GoalData card={card} /> : <p className="goal-indicator__note">{card.remaining}</p>}
       <div className="goal-counter">
         <p className="goal-counter__text">
-          {counter.scored} <span>{es.counter.of}</span> {counter.target} <span>{es.counter.goals}</span>
+          {counter.current} <span>{es.counter.of}</span> {counter.target} <span>{es.counter.goals}</span>
         </p>
         <div className="goal-counter__bar" role="img" aria-label={counter.label}>
-          <div className="goal-counter__fill" style={{ width: `${counter.fill * 100}%` }} />
+          <div className="goal-counter__fill goal-counter__fill--missing" style={{ width: `${counter.fill * 100}%` }} />
+          <div className="goal-counter__fill" style={{ width: `${counter.scoredFill * 100}%` }} />
         </div>
       </div>
     </aside>

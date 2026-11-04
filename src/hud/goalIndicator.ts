@@ -30,22 +30,31 @@ export function createCurrentGoal(): CurrentGoal {
 }
 
 export interface ProgressCounter {
-  /** Official goals scored so far, never past the target. Not the current goal. */
-  scored: number
+  /** The current goal, between 0 and the target. */
+  current: number
   target: number
-  /** Share of the target already scored, 0 to 1: the width of the bar. */
+  /** Share of the target up to the current goal, 0 to 1: how far the bar is filled. */
   fill: number
-  /** The whole counter as one sentence, «978 de 1000 goles». */
+  /** Share filled in `spray`: up to the current goal, but never past the last goal scored. */
+  scoredFill: number
+  /** The whole counter as one sentence, «57 de 1000 goles». */
   label: string
 }
 
-/** The counter of `scored` goals toward `target` (DESIGN.md, ProgressCounter). */
-export function progressCounter(scored: number, target: number = GOAL_TARGET): ProgressCounter {
-  const capped = Math.min(Math.max(scored, 0), target)
+const clamp = (value: number, max: number) => Math.min(Math.max(value, 0), max)
+
+/**
+ * The counter of the tunnel walk (DESIGN.md, ProgressCounter): it fills up to the current goal
+ * as the page scrolls, in `spray` over the goals scored and in `concrete` past them.
+ */
+export function progressCounter(current: number, scored: number, target: number = GOAL_TARGET): ProgressCounter {
+  const goal = clamp(current, target)
+  const share = (value: number) => (target > 0 ? value / target : 0)
   return {
-    scored: capped,
+    current: goal,
     target,
-    fill: target > 0 ? capped / target : 0,
-    label: es.counter.label(capped, target),
+    fill: share(goal),
+    scoredFill: share(Math.min(goal, clamp(scored, target))),
+    label: es.counter.label(goal, target),
   }
 }

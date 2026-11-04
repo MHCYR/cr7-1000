@@ -111,7 +111,7 @@ Capa fija sobre el túnel (#5), abajo a la izquierda en desktop (380px de ancho,
 1. **Pegatina** «gol oficial» o «por marcar», en `tag` (20px; `tag-m` en móvil).
 2. **Número** en `goal-number-xl` (`goal-number-m` en móvil), o en `goal-number-missing` si el gol falta.
 3. **Datos:** filas EQUIPO, RIVAL y FECHA, con el rótulo en `label` y el valor en `data`. En un gol faltante, «Faltan N goles para la meta» en `chalk-muted`.
-4. **Contador:** «978 de 1000 goles» en `counter`, con «de» y «goles» en `chalk-muted`, sobre una barra plana `spray-deep` con relleno `spray`, borde `ink` de `border-brutal` y sombra `shadow-hard-metro`. Cuenta los goles de `goles.json` hacia la meta, no el gol actual: solo cambia cuando cambian los datos.
+4. **Contador:** «57 de 1000 goles» en `counter`, con «de» y «goles» en `chalk-muted`, sobre una barra plana `spray-deep` con borde `ink` de `border-brutal` y sombra `shadow-hard-metro`. La barra se llena hasta el gol actual al hacer scroll: en `spray` hasta el último gol marcado y en `concrete` a partir de ahí, en los goles que faltan. Avanza con una transición lineal de 0.15s, que se quita con movimiento reducido. Esto cambia el `ProgressCounter` del design system navegable, que contaba los goles marcados y no se movía con el scroll.
 
 Muestra la card más cercana a la cámara que está en pantalla. Los goles que están justo al lado de la cámara quedan en las paredes, fuera del encuadre, así que no se usa el gol en el que está la cámara salvo cuando ya no hay ninguna card a la vista. Está oculto con el retrato, hasta que aparecen las cards, y se desvanece en 0.2s (sin transición con movimiento reducido).
 

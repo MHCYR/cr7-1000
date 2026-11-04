@@ -117,7 +117,7 @@
   color: var(--chalk-muted);
 }
 
-/* ---- ProgressCounter: «978 de 1000 goles» over a flat bar. It moves with the data, never with the scroll. ---- */
+/* ---- ProgressCounter: «57 de 1000 goles» over a flat bar that fills up to the current goal. ---- */
 .goal-counter {
   display: grid;
   gap: var(--space-2);
@@ -152,6 +152,17 @@
   inset: 0 auto 0 0;
   background: var(--spray);
   border-right: var(--border-brutal) solid var(--ink);
+  transition: width 0.15s linear;
+}
+
+/* Past the last goal scored, the bar goes on in concrete. */
+.goal-counter__fill--missing {
+  background: var(--concrete);
+}
+
+/* No ink edge while empty, or a stray 3px line would show before goal 1. */
+.goal-counter__fill[style*="width: 0%"] {
+  border-right: none;
 }
 
 /* ---- Mobile: a compact strip along the bottom ---- */
@@ -200,7 +211,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .goal-indicator {
+  .goal-indicator,
+  .goal-counter__fill {
     transition: none;
   }
 }
