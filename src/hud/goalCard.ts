@@ -38,7 +38,7 @@ export type GoalCardData =
   | { numero: number; scored: true; label: string; equipo: CardClub; rival: CardClub; fecha: string }
   | { numero: number; scored: false; label: string; remaining: string }
 
-function cardClub({ nombre, escudo }: Club): CardClub {
+export function cardClub({ nombre, escudo }: Club): CardClub {
   return { nombre, escudo, alt: es.goalCard.crestAlt(nombre), initials: crestInitials(nombre) }
 }
 

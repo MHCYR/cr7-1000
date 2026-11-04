@@ -19,8 +19,13 @@ export const es = {
   indicator: {
     /** Name of the indicator region for assistive technology. */
     region: 'Gol actual',
+    date: 'Fecha',
+    age: 'Edad',
     team: 'Equipo',
-    rival: 'Rival',
+    ageValue: (years: number) => `${years} años`,
+    photoAlt: (year: number) => `Cristiano Ronaldo en ${year}`,
+    /** Placeholder of a year without a photo yet. */
+    photoPending: 'Foto',
   },
   counter: {
     /** Words between the numbers of «978 de 1000 goles», muted in the counter. */

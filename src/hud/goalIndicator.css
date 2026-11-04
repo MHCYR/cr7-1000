@@ -1,4 +1,4 @@
-/* GoalIndicator and ProgressCounter (DESIGN.md): the goal closest to the camera, over the tunnel. */
+/* GoalIndicator and ProgressCounter (DESIGN.md): Cristiano at the current goal, over the tunnel. */
 
 .goal-indicator {
   position: fixed;
@@ -15,79 +15,73 @@
   transition: opacity 0.2s ease-out, visibility 0.2s;
 }
 
-/* With the portrait, before the camera reaches goal 1. */
+/* With the portrait, before the cards show. */
 .goal-indicator--hidden {
   opacity: 0;
   visibility: hidden;
 }
 
-.goal-indicator__tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3);
+/* Photo on the left, data on the right. */
+.goal-indicator__body {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-4);
+  align-items: center;
 }
 
-/* Stickers: flat, square, hard-edged, slapped on slightly crooked. */
-.goal-indicator__sticker {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: 4px 10px 5px;
+/* ---- Photo of the year: a print pasted on the wall ---- */
+.goal-indicator__photo {
+  display: block;
+  width: 112px;
+  height: 140px;
+  object-fit: cover;
+  background: var(--chalk);
   border: var(--border-brutal) solid var(--ink);
   border-radius: var(--radius-brutal);
-  transform: rotate(var(--sticker-tilt));
-  font-family: var(--font-tag);
-  font-size: 20px;
-  line-height: 22px;
-  color: var(--ink);
-  background: var(--spray);
-  box-shadow: var(--shadow-hard-metro);
+  box-shadow: var(--shadow-hard-spray);
 }
 
-.goal-indicator__sticker--missing {
-  color: var(--chalk);
+/* No photo yet: an empty frame with the year it is waiting for. */
+.goal-indicator__photo--pending {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
   background: var(--wall);
   border-style: dashed;
   border-color: var(--concrete);
   box-shadow: var(--shadow-hard-concrete);
 }
 
-.goal-indicator__sticker .goal-card__ring {
-  width: 10px;
-  height: 10px;
-  margin: 0;
+.goal-indicator__photo-label {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--chalk-muted);
 }
 
-/* The number: a block-letter throw-up, chalk face with a hard ink and metro extrusion. */
-.goal-indicator__number {
-  margin: 0;
+.goal-indicator__photo-year {
   font-family: var(--font-display);
-  font-size: 104px;
-  line-height: 0.9;
-  font-weight: 400;
+  font-size: 24px;
+  line-height: 1;
   font-variant-numeric: tabular-nums;
-  color: var(--chalk);
-  text-shadow: 3px 3px 0 var(--ink), 6px 6px 0 var(--metro);
-}
-
-/* Missing: outline only, a sketch not painted yet. */
-.goal-indicator--missing .goal-indicator__number {
-  font-family: var(--font-display-outline);
   color: var(--concrete);
-  text-shadow: none;
 }
 
+/* ---- Date, age and team ---- */
 .goal-indicator__data {
   display: grid;
   gap: var(--space-3);
+  min-width: 0;
   margin: 0;
 }
 
 .goal-indicator__row {
   display: grid;
-  grid-template-columns: 64px 1fr;
-  gap: var(--space-3);
-  align-items: baseline;
+  gap: 2px;
 }
 
 .goal-indicator__row dt {
@@ -107,6 +101,36 @@
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--chalk);
+}
+
+.goal-indicator__team {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* The crest of his team, as in the goal cards: a chalk tile with a spray shadow. */
+.goal-indicator__crest {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: var(--chalk);
+  border: var(--border-brutal) solid var(--ink);
+  border-radius: var(--radius-brutal);
+  box-shadow: 2px 2px 0 0 var(--spray);
+  font-family: var(--font-display);
+  font-size: 12px;
+  color: var(--ink);
+}
+
+.goal-indicator__crest img {
+  width: 100%;
+  height: 100%;
+  padding: 3px;
+  object-fit: contain;
 }
 
 .goal-indicator__note {
@@ -175,38 +199,25 @@
     max-width: none;
     padding: var(--space-4);
     gap: var(--space-4);
-    grid-template-columns: auto 1fr;
-    align-items: end;
   }
 
-  .goal-indicator__tags,
-  .goal-indicator__note,
-  .goal-counter {
-    grid-column: 1 / -1;
-  }
-
-  .goal-indicator__sticker {
-    font-size: 17px;
-    line-height: 20px;
-  }
-
-  .goal-indicator__number {
-    font-size: 64px;
-    text-shadow: 2px 2px 0 var(--ink), 4px 4px 0 var(--metro);
+  .goal-indicator__photo {
+    width: 80px;
+    height: 100px;
   }
 
   .goal-indicator__data {
-    gap: var(--space-1);
-  }
-
-  .goal-indicator__row {
-    grid-template-columns: 1fr;
-    gap: 0;
+    gap: var(--space-2);
   }
 
   .goal-indicator__row dd {
     font-size: 15px;
     line-height: 20px;
+  }
+
+  .goal-indicator__crest {
+    width: 28px;
+    height: 28px;
   }
 }
 

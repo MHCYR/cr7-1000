@@ -104,13 +104,13 @@ Cada gol del túnel es una card de vidrio en lugar de un punto. Dirección elegi
 
 **Escudos:** el diseño usa marcadores de posición con las iniciales del equipo. Las imágenes reales van dentro de la baldosa blanca, centradas y contenidas (`object-fit: contain`) con 8px de aire, y llevan `alt` con el nombre del equipo («Escudo de Al-Nassr»). Los escudos son marcas registradas: hace falta elegir una fuente de imágenes con licencia antes de publicar.
 
-### GoalIndicator: el gol actual
+### GoalIndicator: Cristiano en el gol actual
 
-Capa fija sobre el túnel (#5), abajo a la izquierda en desktop (380px de ancho, padding `space-6`) y como franja a lo ancho de la parte de abajo en móvil (padding `space-4`, número y datos lado a lado). Componentes `hud-card` y `ProgressCounter` del design system navegable. De arriba abajo:
+Capa fija sobre el túnel (#5), abajo a la izquierda en desktop (380px de ancho, padding `space-6`) y como franja a lo ancho de la parte de abajo en móvil (padding `space-4`). Las cards ya dicen el número y el rival de cada gol, así que el indicador no los repite: habla de Cristiano el día del gol actual.
 
-1. **Pegatina** «gol oficial» o «por marcar», en `tag` (20px; `tag-m` en móvil).
-2. **Número** en `goal-number-xl` (`goal-number-m` en móvil), o en `goal-number-missing` si el gol falta.
-3. **Datos:** filas EQUIPO, RIVAL y FECHA, con el rótulo en `label` y el valor en `data`. En un gol faltante, «Faltan N goles para la meta» en `chalk-muted`.
+1. **Foto del año** (112×140, 80×100 en móvil): una copia pegada en el muro, con borde `ink` de `border-brutal` y sombra `shadow-hard-spray`. Hay una foto por año en `/cristiano/<año>.webp`, listada en `PHOTOS` de `src/hud/cristiano.ts`. Mientras un año no tiene foto se ve un marco vacío de `wall` con borde punteado `concrete`, el rótulo FOTO y el año.
+2. **Datos:** FECHA, EDAD (sus años ese día; nació el 5 feb 1985) y EQUIPO con su escudo en una baldosa `chalk` de 36px con sombra dura `spray`, como en las cards. Rótulo en `label`, valor en `data`.
+3. **Gol faltante:** el marco de la foto con «?» y «Faltan N goles para la meta» en `chalk-muted`.
 4. **Contador:** «57 de 1000 goles» en `counter`, con «de» y «goles» en `chalk-muted`, sobre una barra plana `spray-deep` con borde `ink` de `border-brutal` y sombra `shadow-hard-metro`. La barra se llena hasta el gol actual al hacer scroll: en `spray` hasta el último gol marcado y en `concrete` a partir de ahí, en los goles que faltan. Avanza con una transición lineal de 0.15s, que se quita con movimiento reducido. Esto cambia el `ProgressCounter` del design system navegable, que contaba los goles marcados y no se movía con el scroll.
 
 Muestra la card más cercana a la cámara que está en pantalla. Los goles que están justo al lado de la cámara quedan en las paredes, fuera del encuadre, así que no se usa el gol en el que está la cámara salvo cuando ya no hay ninguna card a la vista. Está oculto con el retrato, hasta que aparecen las cards, y se desvanece en 0.2s (sin transición con movimiento reducido).
