@@ -114,4 +114,24 @@ describe('layoutCards', () => {
 
     expect(slots[1]?.style.visibility).toBe('visible')
   })
+
+  it('returns the closest goal whose card is on screen', () => {
+    // Goal 1 is behind the camera and goal 2 far off screen; goal 3 is the first one in sight.
+    const positions = new Float32Array([0, 0, 2, 50, 0, -1, 0, 0, -3, 0, 0, -4])
+    const slots = [slot(), slot(), slot(), slot()]
+
+    expect(layoutCards(slots, positions, view, [0, 4])).toBe(3)
+  })
+
+  it('counts a goal in sight even before React mounts its slot', () => {
+    const positions = new Float32Array([0, 0, -2, 0, 0, -3])
+
+    expect(layoutCards([null, slot()], positions, view, [0, 2])).toBe(1)
+  })
+
+  it('returns 0 when no card is on screen', () => {
+    const positions = new Float32Array([0, 0, 2])
+
+    expect(layoutCards([slot()], positions, view, [0, 1])).toBe(0)
+  })
 })

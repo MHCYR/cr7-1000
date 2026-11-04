@@ -1,0 +1,250 @@
+/* GoalIndicator and ProgressCounter (DESIGN.md): Cristiano at the current goal, over the tunnel. */
+
+.goal-indicator {
+  position: fixed;
+  left: 28px;
+  bottom: 28px;
+  z-index: 1;
+  display: grid;
+  gap: var(--space-6);
+  width: 448px;
+  max-width: calc(100vw - 56px);
+  padding: var(--space-6);
+  color: var(--chalk);
+  font-family: var(--font-sans);
+  transition: opacity 0.2s ease-out, visibility 0.2s;
+}
+
+/* With the portrait, before the cards show. */
+.goal-indicator--hidden {
+  opacity: 0;
+  visibility: hidden;
+}
+
+/* Photo on top, data below; side by side on mobile. */
+.goal-indicator__body {
+  display: grid;
+  gap: var(--space-4);
+}
+
+/* ---- Photo of the year, square: a print pasted on the wall ---- */
+.goal-indicator__photo {
+  position: relative;
+  width: 400px;
+  max-width: 100%;
+  aspect-ratio: 1;
+  overflow: hidden;
+  background: var(--wall);
+  border: var(--border-brutal) solid var(--ink);
+  border-radius: var(--radius-brutal);
+  box-shadow: var(--shadow-hard-spray);
+}
+
+/* Each photo is a layer; around a change of year the scroll sets both opacities. */
+.goal-indicator__photo-layer {
+  position: absolute;
+  inset: 0;
+  will-change: opacity;
+}
+
+.goal-indicator__photo-layer img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* No photo for the year: an empty frame with the year it is waiting for. */
+.goal-indicator__photo-pending {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  height: 100%;
+  background: var(--wall);
+  outline: var(--border-brutal) dashed var(--concrete);
+  outline-offset: calc(-1 * var(--border-brutal));
+}
+
+.goal-indicator__photo-label {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--chalk-muted);
+}
+
+.goal-indicator__photo-year {
+  font-family: var(--font-display);
+  font-size: 64px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--concrete);
+}
+
+/* ---- Age and club ---- */
+.goal-indicator__data {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+  margin: 0;
+}
+
+.goal-indicator__row {
+  display: grid;
+  gap: 2px;
+}
+
+.goal-indicator__row dt {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--chalk-muted);
+}
+
+.goal-indicator__row dd {
+  min-width: 0;
+  margin: 0;
+  font-size: 17px;
+  line-height: 22px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--chalk);
+}
+
+.goal-indicator__team {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* The crest of his team, as in the goal cards: a chalk tile with a spray shadow. */
+.goal-indicator__crest {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: var(--chalk);
+  border: var(--border-brutal) solid var(--ink);
+  border-radius: var(--radius-brutal);
+  box-shadow: 2px 2px 0 0 var(--spray);
+  font-family: var(--font-display);
+  font-size: 12px;
+  color: var(--ink);
+}
+
+.goal-indicator__crest img {
+  width: 100%;
+  height: 100%;
+  padding: 3px;
+  object-fit: contain;
+}
+
+.goal-indicator__note {
+  margin: 0;
+  font-size: 15px;
+  line-height: 21px;
+  font-weight: 600;
+  color: var(--chalk-muted);
+}
+
+/* ---- ProgressCounter: «57 de 1000 goles» over a flat bar that fills up to the current goal. ---- */
+.goal-counter {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.goal-counter__text {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 15px;
+  line-height: 18px;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--chalk);
+}
+
+.goal-counter__text span {
+  color: var(--chalk-muted);
+}
+
+.goal-counter__bar {
+  position: relative;
+  height: 14px;
+  background: var(--spray-deep);
+  border: var(--border-brutal) solid var(--ink);
+  border-radius: var(--radius-brutal);
+  box-shadow: var(--shadow-hard-metro);
+}
+
+.goal-counter__fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--spray);
+  border-right: var(--border-brutal) solid var(--ink);
+  transition: width 0.15s linear;
+}
+
+/* Past the last goal scored, the bar goes on in concrete. */
+.goal-counter__fill--missing {
+  background: var(--concrete);
+}
+
+/* No ink edge while empty, or a stray 3px line would show before goal 1. */
+.goal-counter__fill[style*="width: 0%"] {
+  border-right: none;
+}
+
+/* ---- Mobile: a compact strip along the bottom ---- */
+@media (max-width: 639px) {
+  .goal-indicator {
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+    width: auto;
+    max-width: none;
+    padding: var(--space-4);
+    gap: var(--space-4);
+  }
+
+  .goal-indicator__body {
+    grid-template-columns: auto 1fr;
+    align-items: center;
+  }
+
+  .goal-indicator__photo {
+    width: 120px;
+  }
+
+  .goal-indicator__photo-year {
+    font-size: 24px;
+  }
+
+  .goal-indicator__data {
+    gap: var(--space-2);
+  }
+
+  .goal-indicator__row dd {
+    font-size: 15px;
+    line-height: 20px;
+  }
+
+  .goal-indicator__crest {
+    width: 28px;
+    height: 28px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .goal-indicator,
+  .goal-counter__fill {
+    transition: none;
+  }
+}

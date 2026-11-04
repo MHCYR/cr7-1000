@@ -90,13 +90,18 @@ export function cardPlacement(x: number, y: number, z: number, view: CardView): 
  * Moves the card slots in `range` (visibleRange) to their goals, straight on the DOM so
  * scrolling never rerenders React: slot i holds the card of goal i + 1, and `positions` the
  * tunnel xyz of each goal. Slots React has not mounted yet are skipped.
+ * Returns the number of the closest goal whose card is on screen, or 0 when none is: the goals
+ * right next to the camera sit on the tunnel walls, out of frame, so this is the goal the
+ * indicator names (#5).
  */
-export function layoutCards(slots: readonly (HTMLElement | null)[], positions: Float32Array, view: CardView, range: readonly [number, number]): void {
-  const end = Math.min(range[1], slots.length, positions.length / 3)
+export function layoutCards(slots: readonly (HTMLElement | null)[], positions: Float32Array, view: CardView, range: readonly [number, number]): number {
+  const end = Math.min(range[1], positions.length / 3)
+  let closest = 0
   for (let i = range[0]; i < end; i++) {
-    const slot = slots[i]
-    if (!slot) continue
+    const slot = i < slots.length ? slots[i] : null
     const placement = cardPlacement(positions[i * 3], positions[i * 3 + 1], positions[i * 3 + 2], view)
+    if (placement && closest === 0) closest = i + 1
+    if (!slot) continue
     if (!placement) {
       if (slot.style.visibility !== 'hidden') slot.style.visibility = 'hidden'
       continue
@@ -106,4 +111,5 @@ export function layoutCards(slots: readonly (HTMLElement | null)[], positions: F
     slot.style.opacity = opacity.toFixed(3)
     slot.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) scale(${scale.toFixed(4)}) translate(-${CARD_ANCHOR.x}px, -${CARD_ANCHOR.y}px)`
   }
+  return closest
 }
