@@ -8,7 +8,7 @@ import { es } from './i18n/es.ts'
 import type { PortraitSettings } from './portrait/settings.ts'
 import { GOAL_PIXELS } from './portrait/sample.ts'
 import { Scene } from './scene/Scene.tsx'
-import { TUNNEL, tunnelScroll } from './tunnel/tunnel.ts'
+import { TUNNEL, scrollHeight } from './tunnel/tunnel.ts'
 
 // Vite removes the import and the entire development module graph in production.
 const DevControls = import.meta.env.DEV ? lazy(() => import('./dev/DevControls.tsx')) : null
@@ -28,8 +28,8 @@ function PortraitView({ settings, restart }: { settings?: PortraitSettings; rest
       </div>
       <GoalCards layer={cards} />
       <GoalIndicator link={indicator} />
-      {/* The page scrolls the entry (TUNNEL.entry of a viewport), then the tunnel itself. */}
-      <div style={{ height: `calc(${100 + TUNNEL.entry * 100}vh + ${tunnelScroll(GOAL_PIXELS)}px)` }} />
+      {/* The page scrolls the entry (TUNNEL.entry of the whole scroll), then the tunnel itself. */}
+      <div style={{ height: `calc(100vh + ${scrollHeight(GOAL_PIXELS)}px)` }} />
       <h1 className="hud">{es.siteTitle}</h1>
     </>
   )
