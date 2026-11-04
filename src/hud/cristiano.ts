@@ -1,17 +1,42 @@
-// What the indicator says about Cristiano at the current goal (#5): his photo of that year, the
-// date, his age that day and the team he scored for, with its crest. Pure, so it is tested
-// without a browser.
+// What the indicator says about Cristiano at the current goal (#5): his photo of that year, his
+// age that day and the club he played for then, with its crest. Pure, so it is tested without a
+// browser.
 
 import type { Clubes, Gol } from '../data/gol.ts'
 import { es } from '../i18n/es.ts'
-import { type CardClub, GOAL_TARGET, cardClub, formatFecha } from './goalCard.ts'
+import { type CardClub, GOAL_TARGET, cardClub } from './goalCard.ts'
 
 /** Cristiano Ronaldo's date of birth, ISO calendar date. */
 export const BIRTH_DATE = '1985-02-05'
 
 /**
- * Photo of Cristiano for each year, served from public/: `/cristiano/<year>.webp`. Empty for now:
- * a year without a photo shows a placeholder until one is added here.
+ * Club stints in chronological order: each one starts on its signing date and lasts until the
+ * next. A null club is a time without one: between leaving Manchester United and signing for
+ * Al-Nassr he only played the 2022 World Cup with Portugal (goal 819).
+ */
+export const CAREER: readonly { clubId: string | null; from: string }[] = [
+  { clubId: '336', from: '2002-08-01' }, // Sporting CP
+  { clubId: '985', from: '2003-08-12' }, // Manchester United
+  { clubId: '418', from: '2009-07-01' }, // Real Madrid
+  { clubId: '506', from: '2018-07-10' }, // Juventus
+  { clubId: '985', from: '2021-08-31' }, // Manchester United
+  { clubId: null, from: '2022-11-22' }, // Without a club
+  { clubId: '18544', from: '2022-12-30' }, // Al-Nassr
+]
+
+/** Id of the club Cristiano played for on `date` (YYYY-MM-DD), or null without one. */
+export function clubOn(date: string, career: typeof CAREER = CAREER): string | null {
+  let club: string | null = null
+  for (const stint of career) {
+    if (stint.from > date) break
+    club = stint.clubId
+  }
+  return club
+}
+
+/**
+ * Photo of Cristiano for each year, served from public/: `/cristiano/<year>.webp`, 400×400.
+ * Empty for now: a year without a photo shows a placeholder until one is added here.
  */
 export const PHOTOS: Readonly<Record<number, string>> = {}
 
@@ -31,10 +56,13 @@ export interface CristianoPhoto {
 }
 
 export type CristianoData =
-  | { numero: number; scored: true; photo: CristianoPhoto; fecha: string; edad: string; equipo: CardClub }
+  | { numero: number; scored: true; photo: CristianoPhoto; edad: string; club: CardClub | null }
   | { numero: number; scored: false; remaining: string }
 
-/** What the indicator shows at goal `numero`: Cristiano that day, or how many goals are left. */
+/**
+ * What the indicator shows at goal `numero`: Cristiano that day, with his club even when the
+ * goal is for Portugal, or how many goals are left.
+ */
 export function cristianoData(
   numero: number,
   goles: Gol[],
@@ -50,8 +78,11 @@ export function cristianoData(
     numero,
     scored: true,
     photo: { year, src: photos[year] ?? null, alt: es.indicator.photoAlt(year) },
-    fecha: formatFecha(gol.fecha),
     edad: es.indicator.ageValue(ageOn(gol.fecha)),
-    equipo: cardClub(clubes[gol.equipoId]),
+    club: clubOrNone(clubOn(gol.fecha), clubes),
   }
+}
+
+function clubOrNone(id: string | null, clubes: Clubes): CardClub | null {
+  return id === null ? null : cardClub(clubes[id])
 }

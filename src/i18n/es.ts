@@ -19,9 +19,10 @@ export const es = {
   indicator: {
     /** Name of the indicator region for assistive technology. */
     region: 'Gol actual',
-    date: 'Fecha',
     age: 'Edad',
-    team: 'Equipo',
+    club: 'Equipo',
+    /** Club row of a goal scored while he had no club (2022 World Cup). */
+    noClub: 'Sin club',
     ageValue: (years: number) => `${years} años`,
     photoAlt: (year: number) => `Cristiano Ronaldo en ${year}`,
     /** Placeholder of a year without a photo yet. */

@@ -9,9 +9,9 @@ import './goalIndicator.css'
 
 /**
  * The indicator over the tunnel (#5). The goal cards already name each goal and its rival, so
- * this one is about Cristiano at the current goal: his photo of that year, the date, his age that
- * day and his team with its crest, over a counter that fills up to the goal as the page scrolls.
- * It is hidden with the portrait and rerenders only when the current goal changes.
+ * this one is about Cristiano at the current goal: his photo of that year, his age that day and
+ * the club he played for then, with its crest (also on goals for Portugal), over a counter that
+ * fills up to the goal as the page scrolls. It is hidden with the portrait and rerenders only when the current goal changes.
  */
 export function GoalIndicator({ goal }: { goal: CurrentGoal }) {
   const current = useSyncExternalStore(goal.subscribe, goal.get)
@@ -46,19 +46,19 @@ function Cristiano({ data }: { data: Extract<CristianoData, { scored: true }> })
       <Photo photo={data.photo} />
       <dl className="goal-indicator__data">
         <div className="goal-indicator__row">
-          <dt>{es.indicator.date}</dt>
-          <dd>{data.fecha}</dd>
-        </div>
-        <div className="goal-indicator__row">
           <dt>{es.indicator.age}</dt>
           <dd>{data.edad}</dd>
         </div>
         <div className="goal-indicator__row">
-          <dt>{es.indicator.team}</dt>
-          <dd className="goal-indicator__team">
-            <Crest club={data.equipo} />
-            {data.equipo.nombre}
-          </dd>
+          <dt>{es.indicator.club}</dt>
+          {data.club ? (
+            <dd className="goal-indicator__team">
+              <Crest club={data.club} />
+              {data.club.nombre}
+            </dd>
+          ) : (
+            <dd>{es.indicator.noClub}</dd>
+          )}
         </div>
       </dl>
     </div>
