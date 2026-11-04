@@ -7,7 +7,7 @@
   z-index: 1;
   display: grid;
   gap: var(--space-6);
-  width: 380px;
+  width: 448px;
   max-width: calc(100vw - 56px);
   padding: var(--space-6);
   color: var(--chalk);
@@ -21,19 +21,18 @@
   visibility: hidden;
 }
 
-/* Photo on the left, data on the right. */
+/* Photo on top, data below; side by side on mobile. */
 .goal-indicator__body {
   display: grid;
-  grid-template-columns: auto 1fr;
   gap: var(--space-4);
-  align-items: center;
 }
 
 /* ---- Photo of the year, square (400×400 source): a print pasted on the wall ---- */
 .goal-indicator__photo {
   display: block;
-  width: 120px;
-  height: 120px;
+  width: 400px;
+  max-width: 100%;
+  aspect-ratio: 1;
   object-fit: cover;
   background: var(--chalk);
   border: var(--border-brutal) solid var(--ink);
@@ -65,7 +64,7 @@
 
 .goal-indicator__photo-year {
   font-family: var(--font-display);
-  font-size: 24px;
+  font-size: 64px;
   line-height: 1;
   font-variant-numeric: tabular-nums;
   color: var(--concrete);
@@ -201,9 +200,17 @@
     gap: var(--space-4);
   }
 
+  .goal-indicator__body {
+    grid-template-columns: auto 1fr;
+    align-items: center;
+  }
+
   .goal-indicator__photo {
-    width: 88px;
-    height: 88px;
+    width: 120px;
+  }
+
+  .goal-indicator__photo-year {
+    font-size: 24px;
   }
 
   .goal-indicator__data {
