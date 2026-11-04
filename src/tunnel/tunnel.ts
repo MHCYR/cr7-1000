@@ -2,7 +2,7 @@
 // goal number n at z = -n × separation, and page scroll first flies the goal pixels there
 // (progress 0 → 1) and then moves the camera along Z, past the goals from 1 to the last.
 // Meanwhile the fill pixels come toward the camera and pass beside it, so the camera enters
-// the image instead of watching it fade: first all at once, then one by one. All lengths are world units; the GPU does the
+// the image instead of watching it fade: first all at once, then one by one from the edges in. All lengths are world units; the GPU does the
 // interpolation (src/scene/assemblyShader.ts).
 
 import { createRandom } from '../lib/random.ts'
@@ -17,35 +17,35 @@ export const TUNNEL = {
   /** Scroll, in CSS pixels, that moves the camera from one goal to the next. */
   pixelsPerGoal: 24,
   /**
-   * Scroll of the entry, as a share of the viewport height: the goals fly to the tunnel and the
-   * cards take over in it, then the camera moves. The fill pixels are gone from sight by then,
-   * so a longer entry only leaves a pause before the tunnel.
+   * Scroll of the entry, as a share of the whole page scroll: the goals fly to the tunnel and the
+   * cards take over in it, then the camera moves. A share of the page, not of the viewport, so
+   * the tunnel starts at the same global percent on every screen.
    */
-  entry: 0.466,
+  entry: 0.048,
 } as const
 
 /**
  * How the fill pixels come toward the camera while the goals fly to the tunnel: first the whole
- * image at once, so it grows, then one by one from the center out, as if it had depth. Every
+ * image at once, so it grows, then one by one from the edges in, as if it had depth. Every
  * timing is a share of a viewport of scroll (ScrollState.fill, 0 to 1), so it does not follow
- * TUNNEL.entry: the last ones, already out of sight, finish while the camera enters the tunnel.
+ * TUNNEL.entry, which is a share of the whole page.
  * Every length is in world units.
  */
 export const FILL_ZOOM = {
   /** Progress at which the image stops growing as a whole. */
-  zoomEnd: 0.25,
+  zoomEnd: 0.05,
   /** How far toward the camera the whole image comes by zoomEnd; below cameraStart. */
-  zoomDepth: 2.5,
-  /** Progress at which the last fill pixel is past the camera; below 1, the goals finish aligning in sight. */
-  flyEnd: 0.75,
+  zoomDepth: 1,
+  /** Progress at which the last fill pixel is past the camera; at most 1, one viewport of scroll. */
+  flyEnd: 1,
   /** Progress one fill pixel takes to fly from zoomDepth past the camera. */
-  flight: 0.2,
+  flight: 0.01,
   /** How far toward the camera each fill pixel ends, from the portrait: past cameraStart, behind the camera. */
-  reach: TUNNEL.cameraStart + 0.5,
+  reach: 12.5,
   /** Distance to the camera from which a fill pixel starts fading out, so it never fills the screen. */
-  fade: 1.5,
-  /** Share of randomness in the fly-out order: 0 is a perfect ring from the center out, 1 is pure chance. */
-  jitter: 0.3,
+  fade: 0.05,
+  /** Share of randomness in the fly-out order: 0 is a perfect ring from the edges in, 1 is pure chance. */
+  jitter: 0.17,
 } as const
 
 /** Distance fog on the goal walls, in world units in front of the camera; near stays past cameraStart. */
@@ -88,14 +88,17 @@ export function tunnelScroll(goalCount: number, tunnel = TUNNEL): number {
   return (tunnel.cameraStart / tunnel.separation + goalCount) * tunnel.pixelsPerGoal
 }
 
-/** Scroll, in CSS pixels, of the entry: TUNNEL.entry of the viewport height. */
-export function entryScroll(viewportHeight: number, tunnel: { entry: number } = TUNNEL): number {
-  return viewportHeight * tunnel.entry
+/**
+ * Scroll, in CSS pixels, from the portrait to the last goal: the entry, then the tunnel. The
+ * tunnel is TUNNEL.entry short of the whole, so the entry is TUNNEL.entry of it.
+ */
+export function scrollHeight(goalCount: number, tunnel = TUNNEL): number {
+  return tunnelScroll(goalCount, tunnel) / (1 - tunnel.entry)
 }
 
-/** Scroll, in CSS pixels, from the portrait to the last goal: the entry, then the tunnel. */
-export function scrollHeight(viewportHeight: number, goalCount: number, tunnel = TUNNEL): number {
-  return entryScroll(viewportHeight, tunnel) + tunnelScroll(goalCount, tunnel)
+/** Scroll, in CSS pixels, of the entry: TUNNEL.entry of the whole page scroll (scrollHeight). */
+export function entryScroll(goalCount: number, tunnel = TUNNEL): number {
+  return scrollHeight(goalCount, tunnel) - tunnelScroll(goalCount, tunnel)
 }
 
 /** Hermite smoothstep, as in GLSL: 0 at or below `edge0`, 1 at or above `edge1`. */
@@ -154,8 +157,8 @@ export function fillOffset(
 
 /**
  * Fly-out order of the fill pixels at `positions` (xyz triplets, centered on the origin), in
- * [0, 1]: their distance to the center as a share of the farthest one, mixed with `jitter` of
- * chance, so the face leaves first and the edges last without a perfect ring.
+ * [0, 1]: one minus their distance to the center as a share of the farthest one, mixed with
+ * `jitter` of chance, so the edges leave first and the face last without a perfect ring.
  */
 export function fillOrder(positions: Float32Array, seed: number, jitter: number = FILL_ZOOM.jitter): Float32Array {
   const random = createRandom(seed)
@@ -168,8 +171,8 @@ export function fillOrder(positions: Float32Array, seed: number, jitter: number 
   }
   const order = new Float32Array(count)
   for (let i = 0; i < count; i++) {
-    const radial = farthest > 0 ? distances[i] / farthest : 0
-    order[i] = (1 - jitter) * radial + jitter * random()
+    const inward = farthest > 0 ? 1 - distances[i] / farthest : 1
+    order[i] = (1 - jitter) * inward + jitter * random()
   }
   return order
 }
@@ -197,8 +200,8 @@ export interface ScrollState {
  * the same states down to the portrait.
  */
 export function scrollState(scrollY: number, viewportHeight: number, goalCount: number, tunnel = TUNNEL): ScrollState {
-  const scroll = Math.min(Math.max(scrollY, 0), scrollHeight(viewportHeight, goalCount, tunnel))
-  const entry = entryScroll(viewportHeight, tunnel)
+  const scroll = Math.min(Math.max(scrollY, 0), scrollHeight(goalCount, tunnel))
+  const entry = entryScroll(goalCount, tunnel)
   const progress = entry > 0 ? Math.min(scroll / entry, 1) : 1
   const fill = viewportHeight > 0 ? Math.min(scroll / viewportHeight, 1) : 1
   const travelled = (Math.max(scroll - entry, 0) / tunnel.pixelsPerGoal) * tunnel.separation
@@ -220,14 +223,14 @@ export interface ScrollReadout {
  * Where `scrollY` falls on the scroll timeline, for the development readout: the phase, its
  * progress and the whole page's. Same scroll math as scrollState: the entry percent is its
  * progress, so CARD_REVEAL (src/hud/cardLayout.ts) reads as is; the FILL_ZOOM keyframes are
- * shares of a viewport, at keyframe / TUNNEL.entry of the entry.
+ * shares of a viewport, at keyframe × viewport / entryScroll of the entry.
  */
 export function scrollReadout(scrollY: number, viewportHeight: number, goalCount: number, tunnel = TUNNEL): ScrollReadout {
-  const height = scrollHeight(viewportHeight, goalCount, tunnel)
+  const height = scrollHeight(goalCount, tunnel)
   const scroll = Math.min(Math.max(scrollY, 0), height)
   const { progress, cameraZ } = scrollState(scroll, viewportHeight, goalCount, tunnel)
   const globalPercent = height > 0 ? (scroll / height) * 100 : 100
-  const entry = entryScroll(viewportHeight, tunnel)
+  const entry = entryScroll(goalCount, tunnel)
   if (scroll <= entry) return { phase: 'entry', phasePercent: progress * 100, goal: 0, globalPercent }
   const length = tunnelScroll(goalCount, tunnel)
   return {
