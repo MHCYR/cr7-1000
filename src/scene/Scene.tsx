@@ -6,8 +6,9 @@ import { CARD_DEPTH, CARD_REVEAL, CARD_WINDOW, layoutCards, visibleRange } from 
 import type { GoalCardLayer } from '../hud/cardWindow.ts'
 import type { IndicatorLink } from '../hud/goalIndicator.ts'
 import { assemblyEnd } from '../portrait/assemble.ts'
-import { PORTRAIT_URL, loadImagePixels } from '../portrait/load.ts'
+import { loadImagePixels } from '../portrait/load.ts'
 import { goalColors } from '../portrait/palette.ts'
+import { choosePortrait } from '../portrait/pick.ts'
 import { type Portrait, samplePortrait } from '../portrait/sample.ts'
 import { type PortraitSettings, buildBuffers, defaultSettings, samplingOptions } from '../portrait/settings.ts'
 import { type ScrollState, TUNNEL, currentGoal, scrollState, tunnelPositions } from '../tunnel/tunnel.ts'
@@ -32,6 +33,13 @@ const LEAD_DAMPING = 4
 /** One object for every render, so a Scene without settings never sees them change. */
 const DEFAULT_SETTINGS = defaultSettings()
 
+/**
+ * This visit's photo, drawn once per page load: remounts (StrictMode, hot reload of the settings)
+ * keep the same portrait instead of drawing again.
+ */
+let portraitPhoto: string | undefined
+const visitPortrait = () => (portraitPhoto ??= choosePortrait())
+
 const prefersReducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
 interface SceneProps {
@@ -49,7 +57,7 @@ interface SceneProps {
  * Prototype B: the portrait of fill and goal pixels, built on entry, and the tunnel the goal
  * pixels fly to on scroll while the fill comes toward the camera, first as a whole and then one
  * by one past it, and then the camera moves along Z. Each change of
- * the settings does the least work it needs: the photo is decoded once, sampled again only
+ * the settings does the least work it needs: the photo, drawn at random on each visit, is decoded once, sampled again only
  * for the sampling settings and the seed, and its buffers are rebuilt only for the settings
  * that shape them. Duration, initial opacity, fit and the zoom timing just update the shader and the scale.
  */
@@ -59,7 +67,7 @@ export function Scene({ settings = DEFAULT_SETTINGS, restart = 0, cards, indicat
 
   useEffect(() => {
     let cancelled = false
-    loadImagePixels(PORTRAIT_URL)
+    loadImagePixels(visitPortrait())
       .then((pixels) => cancelled || setImage(pixels))
       .catch((error: unknown) => console.error('Could not load the portrait', error))
     return () => {

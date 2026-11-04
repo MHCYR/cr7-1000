@@ -38,7 +38,7 @@ Con `pnpm dev` aparece un panel Leva con cinco grupos: **Animación**, **Píxele
 
 **Copiar valores** copia una declaración TypeScript completa. Sustituye únicamente la declaración `export const PORTRAIT_DEFAULTS: PortraitSettings = { ... }` en `src/portrait/settings.ts` por el texto copiado para adoptar el mismo retrato como configuración del código. Se incluyen todos los parámetros y la semilla. El panel confirma la copia o avisa si el navegador deniega el portapapeles; usa localhost o HTTPS.
 
-Leva es una dependencia de desarrollo y se importa dinámicamente solo bajo `import.meta.env.DEV`. `pnpm build` y `pnpm preview` no incluyen ni muestran el panel. Los tamaños, bordes y colores de los píxeles de gol, el umbral de transparencia y la ruta de la foto no se exponen.
+Leva es una dependencia de desarrollo y se importa dinámicamente solo bajo `import.meta.env.DEV`. `pnpm build` y `pnpm preview` no incluyen ni muestran el panel. Los tamaños, bordes y colores de los píxeles de gol, el umbral de transparencia y la foto sorteada no se exponen.
 
 ## Túnel
 
@@ -66,6 +66,6 @@ pnpm data:real # reescribe goles.json y clubes.json, y descarga los escudos que 
 
 El script necesita red e ImageMagick 7 (`magick` en el PATH) y solo escribe los JSON si los datos nuevos pasan la validación. Convierte cada escudo nuevo a WebP con calidad 90 y falla si dos clubes comparten un escudo idéntico byte a byte. Los escudos WebP ya descargados no se vuelven a pedir. Para renovar uno, borra su archivo de `public/escudos/` y ejecuta el script otra vez. Los nombres llegan en inglés, tal como los publica Transfermarkt. La fecha de cada gol es la fecha UTC del inicio del partido.
 
-## Foto placeholder
+## Foto del retrato
 
-El retrato se genera a partir de `public/cr7_portrait.png`. Esa foto es **solo local**: está en `.gitignore` y no se publica. Los tests y el build no la necesitan, porque el muestreo (`src/portrait/sample.ts`) se prueba con imágenes sintéticas. Antes de publicar se elige una foto con licencia (ver [docs/SPEC.md](docs/SPEC.md)).
+En cada visita el retrato se genera a partir de una foto al azar de `public/cristiano/`, las mismas 25 fotos (2002–2026) que usa el indicador del túnel. Nunca repite la foto de la visita anterior: la última se guarda en `localStorage` con la clave `cr7:last-portrait`. Si el navegador bloquea el almacenamiento, por ejemplo en una ventana privada, la foto sigue saliendo al azar, aunque puede repetirse. Las fotos se muestrean tal cual, en su cuadro de 800×800 con fondo transparente, así que las de cuerpo entero se ven más chicas. La foto se sortea una sola vez por carga: los cambios del panel Leva vuelven a muestrear la misma foto. El sorteo está en `src/portrait/pick.ts`; los tests y el build no dependen de ninguna foto, porque el muestreo (`src/portrait/sample.ts`) se prueba con imágenes sintéticas.
