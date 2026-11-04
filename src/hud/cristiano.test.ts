@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Clubes, Gol } from '../data/gol.ts'
 import { clubes as realClubes, goles as realGoles } from '../data/goles.ts'
-import { ageOn, clubOn, cristianoData } from './cristiano.ts'
+import { PHOTOS, ageOn, clubOn, cristianoData } from './cristiano.ts'
 
 const clubes: Clubes = {
   '985': { nombre: 'Manchester United', escudo: '/escudos/985.webp' },
@@ -82,5 +82,20 @@ describe('cristianoData', () => {
 
   it('says how many goals are left for a missing goal', () => {
     expect(cristianoData(4, goles, clubes, {}, 1000)).toEqual({ numero: 4, scored: false, remaining: 'Faltan 997 goles para la meta' })
+  })
+})
+
+describe('PHOTOS', () => {
+  it('has a photo for the year of every goal scored', () => {
+    const years = new Set(realGoles.map((gol) => Number(gol.fecha.slice(0, 4))))
+
+    expect([...years].filter((year) => !PHOTOS[year])).toEqual([])
+  })
+
+  it('points at files in public/', () => {
+    const files = Object.keys(import.meta.glob('/public/cristiano/*.webp')).map((file) => file.replace('/public', ''))
+    const missing = Object.values(PHOTOS).filter((src) => !files.includes(src))
+
+    expect(missing).toEqual([])
   })
 })

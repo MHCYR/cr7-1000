@@ -34,11 +34,19 @@ export function clubOn(date: string, career: typeof CAREER = CAREER): string | n
   return club
 }
 
+/** Years with a photo of Cristiano in public/cristiano/: from his first goal to today. */
+export const PHOTO_YEARS = { first: 2002, last: 2026 } as const
+
 /**
- * Photo of Cristiano for each year, served from public/: `/cristiano/<year>.webp`, 400×400.
- * Empty for now: a year without a photo shows a placeholder until one is added here.
+ * Photo of Cristiano for each year, served from public/: `/cristiano/<year>.webp`, 800×800 for a
+ * 400×400 frame. A year missing here shows a placeholder.
  */
-export const PHOTOS: Readonly<Record<number, string>> = {}
+export const PHOTOS: Readonly<Record<number, string>> = Object.fromEntries(
+  Array.from({ length: PHOTO_YEARS.last - PHOTO_YEARS.first + 1 }, (_, i) => {
+    const year = PHOTO_YEARS.first + i
+    return [year, `/cristiano/${year}.webp`]
+  }),
+)
 
 /** Whole years between `birth` and `date`, both YYYY-MM-DD. */
 export function ageOn(date: string, birth: string = BIRTH_DATE): number {

@@ -27,30 +27,49 @@
   gap: var(--space-4);
 }
 
-/* ---- Photo of the year, square (400×400 source): a print pasted on the wall ---- */
+/* ---- Photo of the year, square: a print pasted on the wall ---- */
 .goal-indicator__photo {
-  display: block;
+  position: relative;
   width: 400px;
   max-width: 100%;
   aspect-ratio: 1;
-  object-fit: cover;
-  background: var(--chalk);
+  overflow: hidden;
+  background: var(--wall);
   border: var(--border-brutal) solid var(--ink);
   border-radius: var(--radius-brutal);
   box-shadow: var(--shadow-hard-spray);
 }
 
-/* No photo yet: an empty frame with the year it is waiting for. */
-.goal-indicator__photo--pending {
+/* Each photo is a layer; a new one fades in over the last one shown. */
+.goal-indicator__photo-layer {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.6s ease-in-out;
+}
+
+.goal-indicator__photo-layer--shown {
+  opacity: 1;
+}
+
+.goal-indicator__photo-layer img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* No photo for the year: an empty frame with the year it is waiting for. */
+.goal-indicator__photo-pending {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: var(--space-1);
+  height: 100%;
   background: var(--wall);
-  border-style: dashed;
-  border-color: var(--concrete);
-  box-shadow: var(--shadow-hard-concrete);
+  outline: var(--border-brutal) dashed var(--concrete);
+  outline-offset: calc(-1 * var(--border-brutal));
 }
 
 .goal-indicator__photo-label {
@@ -230,7 +249,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .goal-indicator,
-  .goal-counter__fill {
+  .goal-counter__fill,
+  .goal-indicator__photo-layer {
     transition: none;
   }
 }
