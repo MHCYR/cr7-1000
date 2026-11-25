@@ -31,12 +31,13 @@
   top: 0;
   left: 0;
   visibility: hidden;
+  z-index: var(--goal-slot-order);
   transform-origin: 0 0;
   will-change: transform, opacity;
   pointer-events: auto;
 }
 
-/* Hundreds of blurred layers are too slow: only the closest cards, and an open one, blur. */
+/* Limit blur to the closest cards, the open desktop card and mobile summaries. */
 .goal-slot--unblurred:not(.goal-slot--open) .hud-glass {
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
@@ -335,6 +336,16 @@
   }
 }
 
+.goal-card__summary {
+  display: none;
+}
+
+@keyframes goal-card-summary-in {
+  from {
+    opacity: 0;
+  }
+}
+
 @media (pointer: coarse) and (max-width: 639px) {
   .goal-slot {
     pointer-events: none;
@@ -366,6 +377,27 @@
   .goal-card__ring::after {
     animation: none;
     opacity: 0;
+  }
+
+  .goal-slot--summary {
+    z-index: calc(10000 + var(--goal-slot-order));
+    will-change: transform;
+  }
+
+  .goal-slot--unblurred.goal-slot--summary .hud-glass {
+    -webkit-backdrop-filter: var(--glass-blur-m);
+    backdrop-filter: var(--glass-blur-m);
+  }
+
+  .goal-slot--summary .goal-card__summary {
+    display: grid;
+    gap: var(--space-1);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .goal-slot--summary .goal-card__summary {
+      animation: goal-card-summary-in 120ms ease-out;
+    }
   }
 
   .goal-card__summary-teams {

@@ -1,4 +1,4 @@
-import { type PointerEvent, memo, useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react'
+import { type CSSProperties, type PointerEvent, memo, useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import { clubes, goles } from '../data/goles.ts'
 import { es } from '../i18n/es.ts'
 import { GOAL_PIXELS } from '../portrait/sample.ts'
@@ -16,8 +16,8 @@ interface GoalCardsProps {
 }
 
 /**
- * The goal cards of the tunnel (DESIGN.md, GoalCard) over the canvas: only the CARD_WINDOW goals
- * from the camera on, so the DOM never holds more cards than that (#21). React renders them
+ * The goal cards of the tunnel (DESIGN.md, GoalCard) over the canvas: a bounded window of goals
+ * from the camera on (#21). React renders them
  * again only when the window slides, once per goal, and tracks the one open card; their screen
  * positions are written straight to the DOM by the scene (src/hud/cardLayout.ts).
  */
@@ -67,7 +67,7 @@ export function GoalCards({ layer, mobile, count = GOAL_PIXELS }: GoalCardsProps
 interface GoalSlotProps extends GoalCardProps {
   mount: GoalCardLayer['mount']
   zIndex: number
-  /** Only the cards closest to the camera blur the tunnel behind them. */
+  /** The closest cards blur even in their resting state. */
   blurred: boolean
 }
 
@@ -77,8 +77,8 @@ const GoalSlot = memo(function GoalSlot({ mount, zIndex, blurred, ...cardProps }
   const className = ['goal-slot', cardProps.open && 'goal-slot--open', !blurred && 'goal-slot--unblurred'].filter(Boolean).join(' ')
 
   return (
-    <div ref={setSlot} className={className} style={{ zIndex }}>
-      <GoalCard {...cardProps} summary={cardProps.mobile && blurred} />
+    <div ref={setSlot} className={className} style={{ '--goal-slot-order': zIndex } as CSSProperties}>
+      <GoalCard {...cardProps} />
     </div>
   )
 })
@@ -91,7 +91,7 @@ interface GoalCardProps {
   onClose: (numero: number) => void
 }
 
-const GoalCard = memo(function GoalCard({ card, mobile, summary, open, onOpen, onClose }: GoalCardProps & { summary: boolean }) {
+const GoalCard = memo(function GoalCard({ card, mobile, open, onOpen, onClose }: GoalCardProps) {
   const { numero } = card
   const fromMouse = (event: PointerEvent) => event.pointerType === 'mouse'
   const className = ['goal-card', 'hud-glass', open && 'goal-card--open', !card.scored && 'goal-card--missing']
@@ -113,7 +113,7 @@ const GoalCard = memo(function GoalCard({ card, mobile, summary, open, onOpen, o
         <p className="goal-card__number">{numero}</p>
         {open ? <Sticker scored={card.scored} /> : <StateMark scored={card.scored} />}
       </div>
-      {summary && <Summary card={card} />}
+      {mobile && <Summary card={card} />}
       {open && (card.scored ? <ScoredDetails card={card} /> : <MissingDetails remaining={card.remaining} />)}
     </article>
   )
@@ -121,7 +121,7 @@ const GoalCard = memo(function GoalCard({ card, mobile, summary, open, onOpen, o
 
 function Summary({ card }: { card: GoalCardData }) {
   return (
-    <>
+    <div className="goal-card__summary">
       <div className="goal-card__summary-teams">
         {card.scored ? (
           <>
@@ -133,7 +133,7 @@ function Summary({ card }: { card: GoalCardData }) {
         ) : es.goalCard.summaryMissing}
       </div>
       <p className="goal-card__summary-date">{card.scored ? card.fecha : card.summaryRemaining}</p>
-    </>
+    </div>
   )
 }
 

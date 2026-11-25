@@ -1,19 +1,24 @@
 // Where each goal card sits on screen (DESIGN.md, Comportamiento en el túnel). The camera only
 // moves along Z and looks down -Z, so a goal at depth d in front of it projects to the screen
 // center plus its X/Y times focal / d. Cards keep their design size up to READING_DISTANCE and
-// shrink with the perspective beyond it, fading in the same fog as the goal pixels did.
-// Only the CARD_WINDOW goals ahead of the camera are cards (#21); past CARD_DEPTH the cards fade
-// back into goal pixels, which the vertex shader shows from that same depth on.
+// shrink with perspective beyond it. Resting cards fade in the same fog as the goal pixels.
+// Both modes share a bounded card window (#21); the vertex shader brings goal pixels back at
+// the same depth where the cards fade out.
 
 import { TUNNEL, type TunnelFog, currentGoal, smoothstep, tunnelFade } from '../tunnel/tunnel.ts'
 
 /** Depth, in world units, at which a card shows at its design size: about the closest one on screen. */
 export const READING_DISTANCE = 8
 
+// Screen position varies as 1/depth, so at depth 3 a card moves about 9 times slower
+// than at depth 1 for the same camera speed, leaving more time to read.
+export const SUMMARY_ZONE = { near: 16 * TUNNEL.separation, far: 30 * TUNNEL.separation } as const
+export const SUMMARY_MAX = 4
+
 /** Scroll progress over which the cards take over from the goal pixels as these reach the tunnel. */
 export const CARD_REVEAL = { start: 0.8, end: 1 } as const
 
-/** Most goal cards mounted at once: the goals ahead of them stay as goal pixels. */
+/** Most goal cards mounted at once. */
 export const CARD_WINDOW = 48
 
 /**
@@ -78,7 +83,7 @@ export function visibleRange(cameraZ: number, separation: number, max: number, c
 }
 
 /** The card of the goal at world (x, y, z), or null when it is hidden: behind the camera, in the fog or off screen. */
-export function cardPlacement(x: number, y: number, z: number, view: CardView, blurred = false): CardPlacement | null {
+export function cardPlacement(x: number, y: number, z: number, view: CardView, summary = false): CardPlacement | null {
   const depth = view.cameraZ - z
   if (depth <= 0) return null
   const opacity =
@@ -88,7 +93,6 @@ export function cardPlacement(x: number, y: number, z: number, view: CardView, b
   if (opacity <= 0.01) return null
 
   const scale = Math.min(1, READING_DISTANCE / depth)
-  const summary = view.mobile && blurred
   const width = view.mobile ? MOBILE_WIDTH : CARD_EXTENT.width
   const height = view.mobile ? (summary ? MOBILE_SUMMARY_HEIGHT : MOBILE_RESTING_HEIGHT) : CARD_EXTENT.height
   const anchorX = view.mobile ? MOBILE_WIDTH / 2 : CARD_ANCHOR.x
@@ -118,9 +122,18 @@ export function layoutCards(slots: readonly (HTMLElement | null)[], positions: F
   const end = Math.min(range[1], positions.length / 3)
   const anchorX = view.mobile ? MOBILE_WIDTH / 2 : CARD_ANCHOR.x
   let closest = 0
+  let summaries = 0
   for (let i = range[0]; i < end; i++) {
     const slot = i < slots.length ? slots[i] : null
-    const placement = cardPlacement(positions[i * 3], positions[i * 3 + 1], positions[i * 3 + 2], view, isBlurredCard(i - range[0]))
+    const index = i * 3
+    const z = positions[index + 2]
+    const depth = view.cameraZ - z
+    // Goal indices already run from the nearest to the farthest.
+    const eligible = view.mobile && summaries < SUMMARY_MAX && depth >= SUMMARY_ZONE.near && depth <= SUMMARY_ZONE.far
+    const summaryPlacement = eligible ? cardPlacement(positions[index], positions[index + 1], z, view, true) : null
+    if (summaryPlacement) summaries++
+    const placement = summaryPlacement ?? cardPlacement(positions[index], positions[index + 1], z, view)
+    if (slot && view.mobile) slot.classList.toggle('goal-slot--summary', summaryPlacement !== null)
     if (placement && closest === 0) closest = i + 1
     if (!slot) continue
     if (!placement) {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { TUNNEL, TUNNEL_FOG, tunnelPositions } from '../tunnel/tunnel.ts'
-import { BLURRED_CARDS, CARD_DEPTH, CARD_REVEAL, CARD_WINDOW, READING_DISTANCE, type CardView, cardPlacement, layoutCards, visibleRange } from './cardLayout.ts'
+import { CARD_DEPTH, CARD_REVEAL, CARD_WINDOW, READING_DISTANCE, SUMMARY_MAX, SUMMARY_ZONE, type CardView, cardPlacement, layoutCards, visibleRange } from './cardLayout.ts'
 
 // A card depth past the fog, so these tests see the projection, size and fog alone.
 const view: CardView = { cameraZ: 0, focal: 1000, width: 1200, height: 800, progress: 1, fog: TUNNEL_FOG, cardDepth: { start: 200, end: 300 } }
@@ -42,14 +42,14 @@ describe('cardPlacement', () => {
     expect(cardPlacement(0, 0, -10, { ...view, progress: CARD_REVEAL.end })?.opacity).toBe(1)
   })
 
-  it('insets a blurred mobile card at both sides and both ends of the screen', () => {
+  it('insets a mobile summary at both sides and both ends of the screen', () => {
     const mobile = { ...view, mobile: true, width: 360 }
-    const bottomLeft = cardPlacement(-1.5, -3, -8, mobile, true)
-    const topRight = cardPlacement(1.5, 3, -8, mobile, true)
+    const bottomLeft = cardPlacement(-0.5625, -1.125, -3, mobile, true)
+    const topRight = cardPlacement(0.5625, 1.125, -3, mobile, true)
 
     expect(bottomLeft).toMatchObject({ x: 82, y: 684, scale: 1 })
     expect(topRight).toMatchObject({ x: 278, y: 48, scale: 1 })
-    expect(cardPlacement(10, 0, -8, mobile, true)).toBeNull()
+    expect(cardPlacement(10, 0, -3, mobile, true)).toBeNull()
   })
 
   it('hides cards behind the camera or off screen', () => {
@@ -103,7 +103,17 @@ describe('visibleRange', () => {
 })
 
 describe('layoutCards', () => {
-  const slot = () => ({ style: { visibility: '', opacity: '', transform: '' } }) as unknown as HTMLElement
+  const slot = () => {
+    const classes = new Set<string>()
+    return {
+      style: { visibility: '', opacity: '', transform: '' },
+      classList: {
+        contains: (name: string) => classes.has(name),
+        toggle: (name: string, enabled: boolean) => enabled ? classes.add(name) : classes.delete(name),
+      },
+    } as unknown as HTMLElement
+  }
+  const hasSummary = (card: HTMLElement) => card.classList.contains('goal-slot--summary')
 
   it('only moves the slots in the range', () => {
     const positions = new Float32Array([0, 0, -2, 0, 0, -3, 0, 0, -4, 0, 0, -5])
@@ -116,20 +126,49 @@ describe('layoutCards', () => {
     expect(slots[3].style.transform).toBe('')
   })
 
-  it('insets only the blurred cards from the start of the mobile window', () => {
-    const start = 5
-    const end = start + BLURRED_CARDS + 1
-    const positions = new Float32Array(end * 3)
-    const slots = Array.from({ length: end }, slot)
-    for (let i = start; i < end; i++) positions.set([-1.5, -3, -8], 3 * i)
+  const mobile = { ...view, mobile: true, width: 360, cardDepth: CARD_DEPTH }
 
-    layoutCards(slots, positions, { ...view, mobile: true, width: 360 }, [start, end])
+  it('summarizes only depths in the zone, including both boundaries', () => {
+    const depths = [SUMMARY_ZONE.near - 0.25, SUMMARY_ZONE.near, SUMMARY_ZONE.far, SUMMARY_ZONE.far + 0.25]
+    const positions = new Float32Array(depths.flatMap((depth) => [0, 0, -depth]))
+    const slots = depths.map(slot)
 
-    expect(slots.slice(start, end - 1).map((card) => card.style.transform)).toEqual(
-      Array(BLURRED_CARDS).fill('translate3d(82.0px, 684.0px, 0) scale(1.0000) translate(-70px, -36px)'),
+    layoutCards(slots, positions, mobile, [0, slots.length])
+
+    expect(slots.map(hasSummary)).toEqual([false, true, true, false])
+    expect(slots[2].style.opacity).toBe('1.000')
+    expect(slots[3].style.visibility).toBe('visible')
+
+    layoutCards(slots, positions, { ...mobile, cameraZ: -0.25 }, [0, slots.length])
+
+    expect(slots.map(hasSummary)).toEqual([false, false, true, true])
+  })
+
+  it('limits summaries to the four closest visible cards in the zone', () => {
+    const depths = Array.from({ length: SUMMARY_MAX + 2 }, (_, offset) => SUMMARY_ZONE.near + offset * TUNNEL.separation)
+    const positions = new Float32Array(depths.flatMap((depth, offset) => [offset === 0 ? 100 : 0, 0, -depth]))
+    const slots = depths.map(slot)
+
+    layoutCards(slots, positions, mobile, [0, slots.length])
+
+    expect(slots.map(hasSummary)).toEqual([false, ...Array(SUMMARY_MAX).fill(true), false])
+  })
+
+  it('insets the four mobile summaries and leaves the next card at its projected position', () => {
+    const positions = new Float32Array(
+      Array.from({ length: SUMMARY_MAX + 1 }, () => [-0.5625, -1.125, -3]).flat(),
     )
-    expect(slots[end - 1].style.visibility).toBe('visible')
-    expect(slots[end - 1].style.transform).toBe('translate3d(-7.5px, 775.0px, 0) scale(1.0000) translate(-70px, -36px)')
+    const slots = Array.from({ length: SUMMARY_MAX + 1 }, slot)
+
+    layoutCards(slots, positions, mobile, [0, slots.length])
+
+    expect(slots[0].style.transform).toBe(
+      'translate3d(82.0px, 684.0px, 0) scale(1.0000) translate(-70px, -36px)',
+    )
+    expect(slots[SUMMARY_MAX].style.visibility).toBe('visible')
+    expect(slots[SUMMARY_MAX].style.transform).toBe(
+      'translate3d(-7.5px, 775.0px, 0) scale(1.0000) translate(-70px, -36px)',
+    )
   })
 
   it('skips slots that React has not mounted yet', () => {
