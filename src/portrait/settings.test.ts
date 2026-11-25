@@ -37,6 +37,15 @@ describe('defaultSettings', () => {
     })
   })
 
+  it('picks the mobile density on a mobile device', () => {
+    expect(defaultSettings(() => ({ matches: true })).sampling.density).toBe(FILL_DENSITY.mobile)
+  })
+
+  it('picks the desktop density otherwise', () => {
+    expect(defaultSettings(() => ({ matches: false })).sampling.density).toBe(FILL_DENSITY.desktop)
+    expect(defaultSettings().sampling.density).toBe(FILL_DENSITY.desktop)
+  })
+
   it('survives a JSON round trip, so it can be copied as a whole', () => {
     expect(JSON.parse(JSON.stringify(defaultSettings()))).toEqual(defaultSettings())
   })
