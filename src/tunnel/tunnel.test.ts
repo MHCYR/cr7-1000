@@ -86,6 +86,15 @@ describe('scrollState', () => {
     expect(scrollState(viewport * 3, viewport, goals).fill).toBe(1)
   })
 
+  it('keeps entry and camera progress fixed when the viewport height changes', () => {
+    const resizedViewport = 600
+    for (const scroll of [entry / 2, entry + 10 * TUNNEL.pixelsPerGoal, scrollHeight(goals)]) {
+      const { progress, cameraZ } = scrollState(scroll, viewport, goals)
+      expect(scrollState(scroll, resizedViewport, goals)).toMatchObject({ progress, cameraZ })
+    }
+    expect(scrollState(resizedViewport / 2, resizedViewport, goals).fill).toBe(0.5)
+  })
+
   it('then moves the camera into the tunnel, one separation per pixelsPerGoal of scroll', () => {
     const { progress, cameraZ } = scrollState(entry + 10 * TUNNEL.pixelsPerGoal, viewport, goals)
     expect(progress).toBe(1)

@@ -29,7 +29,7 @@ function PortraitView({ settings, restart }: { settings?: PortraitSettings; rest
       <GoalCards layer={cards} />
       <GoalIndicator link={indicator} />
       {/* The page scrolls the entry (TUNNEL.entry of the whole scroll), then the tunnel itself. */}
-      <div style={{ height: `calc(100vh + ${scrollHeight(GOAL_PIXELS)}px)` }} />
+      <div id="tunnel-scroll" style={{ height: `calc(100lvh + ${scrollHeight(GOAL_PIXELS)}px)` }} />
       <h1 className="hud">{es.siteTitle}</h1>
     </>
   )

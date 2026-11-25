@@ -196,14 +196,14 @@ export interface ScrollState {
 /**
  * Where the scene stands at `scrollY`: the entry (entryScroll) flies the goal pixels to the
  * tunnel with the camera still; the rest moves the camera to the last goal. The fill pixels
- * follow the first viewport of scroll, past the entry. Pure, so scrolling back up gives back
+ * follow one stable viewport of scroll, past the entry. Scrolling back up gives back
  * the same states down to the portrait.
  */
-export function scrollState(scrollY: number, viewportHeight: number, goalCount: number, tunnel = TUNNEL): ScrollState {
+export function scrollState(scrollY: number, stableViewportHeight: number, goalCount: number, tunnel = TUNNEL): ScrollState {
   const scroll = Math.min(Math.max(scrollY, 0), scrollHeight(goalCount, tunnel))
   const entry = entryScroll(goalCount, tunnel)
   const progress = entry > 0 ? Math.min(scroll / entry, 1) : 1
-  const fill = viewportHeight > 0 ? Math.min(scroll / viewportHeight, 1) : 1
+  const fill = stableViewportHeight > 0 ? Math.min(scroll / stableViewportHeight, 1) : 1
   const travelled = (Math.max(scroll - entry, 0) / tunnel.pixelsPerGoal) * tunnel.separation
   return { progress, fill, cameraZ: tunnel.cameraStart - travelled }
 }
