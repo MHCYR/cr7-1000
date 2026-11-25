@@ -42,7 +42,7 @@ describe('defaultSettings', () => {
   })
 
   it('picks the desktop density otherwise', () => {
-    expect(defaultSettings(() => ({ matches: false })).sampling.density).toBe(FILL_DENSITY.desktop)
+    expect(defaultSettings(() => ({ matches: false })).sampling.density).toBe(PORTRAIT_DEFAULTS.sampling.density)
     expect(defaultSettings().sampling.density).toBe(FILL_DENSITY.desktop)
   })
 

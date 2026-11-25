@@ -66,7 +66,8 @@ export const PORTRAIT_DEFAULTS: PortraitSettings = {
 export function defaultSettings(matchMedia?: (query: string) => { matches: boolean }): PortraitSettings {
   const settings = structuredClone(PORTRAIT_DEFAULTS)
   // Mobile builds a lighter cloud of fill pixels so the portrait still runs smoothly (#7).
-  settings.sampling.density = isMobile(matchMedia) ? FILL_DENSITY.mobile : FILL_DENSITY.desktop
+  // Desktop keeps whatever PORTRAIT_DEFAULTS says, so a pasted tuned density still applies.
+  if (isMobile(matchMedia)) settings.sampling.density = FILL_DENSITY.mobile
   return settings
 }
 
