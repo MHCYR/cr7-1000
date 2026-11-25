@@ -12,8 +12,8 @@ export function isMobile(matchMedia?: (query: string) => { matches: boolean }): 
 }
 
 /**
- * Canvas pixel-ratio clamp for the `dpr` prop in src/App.tsx. Mobile caps at 1.5: a 390×844
- * screen with DPR 2 paints ~740k pixels a frame instead of ~1.3M. Desktop keeps the sharp [1, 2].
+ * Canvas pixel-ratio clamp for the `dpr` prop in src/App.tsx. Mobile caps at 1.5: on a 390×844
+ * screen that paints ~740k pixels a frame instead of ~1.3M at 2. Desktop keeps the sharp [1, 2].
  */
 export function canvasDpr(mobile: boolean): [number, number] {
   return mobile ? [1, 1.5] : [1, 2]
