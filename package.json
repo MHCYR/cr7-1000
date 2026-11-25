@@ -12,7 +12,8 @@
     "lint": "oxlint",
     "test": "vitest run",
     "data:real": "node scripts/fetch-goles.ts",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "perf": "pnpm build && node scripts/measure-performance.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",
@@ -29,6 +30,7 @@
     "@vitejs/plugin-react": "^6.1.2",
     "leva": "^0.10.1",
     "oxlint": "^1.89.0",
+    "playwright": "1.65.1",
     "typescript": "~7.0.2",
     "vite": "^8.3.5",
     "vitest": "^5.0.5"
