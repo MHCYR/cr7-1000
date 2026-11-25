@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { isMobile, MOBILE_QUERY } from './device.ts'
+import { canvasDpr, isMobile, MOBILE_QUERY } from './device.ts'
 
 describe('isMobile', () => {
   it('is true when the media query matches', () => {
@@ -20,5 +20,15 @@ describe('isMobile', () => {
 
   it('is false without window or matchMedia', () => {
     expect(isMobile()).toBe(false)
+  })
+})
+
+describe('canvasDpr', () => {
+  it('caps mobile at 1.5', () => {
+    expect(canvasDpr(true)).toEqual([1, 1.5])
+  })
+
+  it('keeps desktop at 2', () => {
+    expect(canvasDpr(false)).toEqual([1, 2])
   })
 })
