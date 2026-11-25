@@ -11,7 +11,7 @@
 }
 
 @media (max-width: 639px) {
-  .hud-glass {
+  .hud-glass:not(.goal-card) {
     -webkit-backdrop-filter: var(--glass-blur-m);
     backdrop-filter: var(--glass-blur-m);
     border-radius: var(--radius-glass-m);
@@ -332,5 +332,89 @@
   .goal-card__ring::after {
     animation: none;
     opacity: 0;
+  }
+}
+
+@media (pointer: coarse) and (max-width: 639px) {
+  .goal-slot {
+    pointer-events: none;
+  }
+
+  .goal-card {
+    width: 140px;
+    gap: var(--space-1);
+    padding: var(--space-2);
+    cursor: default;
+    border-radius: var(--radius-glass-m);
+    -webkit-backdrop-filter: var(--glass-blur-m);
+    backdrop-filter: var(--glass-blur-m);
+    transition: none;
+  }
+
+  .goal-card__head {
+    position: relative;
+    gap: 0;
+  }
+
+  .goal-card__mark,
+  .goal-card__ring {
+    position: absolute;
+    top: 0;
+    right: 0;
+  }
+
+  .goal-card__ring::after {
+    animation: none;
+    opacity: 0;
+  }
+
+  .goal-card__summary-teams {
+    font-size: 14px;
+    line-height: 17px;
+    font-weight: 700;
+  }
+
+  .goal-card__summary-own,
+  .goal-card__summary-rival {
+    margin: 0;
+    overflow: hidden;
+  }
+
+  .goal-card__summary-own {
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .goal-card__summary-rival {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    max-height: 34px;
+    overflow-wrap: anywhere;
+  }
+
+  .goal-card__summary-rival span {
+    font-family: var(--font-tag);
+    font-weight: 400;
+    color: var(--chalk-muted);
+  }
+
+  .goal-card__summary-date {
+    margin: 0;
+    padding-top: var(--space-1);
+    border-top: var(--border-brutal) solid var(--chalk);
+    color: var(--chalk-muted);
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .goal-card--missing .goal-card__summary-teams {
+    color: var(--chalk-muted);
+  }
+
+  .goal-card--missing .goal-card__summary-date {
+    border-top: var(--border-brutal) dashed var(--concrete);
   }
 }

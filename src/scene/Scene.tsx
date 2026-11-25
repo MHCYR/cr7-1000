@@ -49,6 +49,7 @@ interface SceneProps {
   restart?: number
   /** Goal card slots, index i for goal i + 1: the scene moves them onto their goals every frame. */
   cards?: GoalCardLayer
+  mobile?: boolean
   /** The current goal and its continuous position, for the indicator: set every frame. */
   indicator?: IndicatorLink
 }
@@ -61,7 +62,7 @@ interface SceneProps {
  * for the sampling settings and the seed, and its buffers are rebuilt only for the settings
  * that shape them. Duration, initial opacity, fit and the zoom timing just update the shader and the scale.
  */
-export function Scene({ settings = DEFAULT_SETTINGS, restart = 0, cards, indicator }: SceneProps) {
+export function Scene({ settings = DEFAULT_SETTINGS, restart = 0, cards, mobile = false, indicator }: SceneProps) {
   const [image, setImage] = useState<ImageData | null>(null)
   const { fillCount, edgeBand, seed } = samplingOptions(settings)
 
@@ -90,10 +91,10 @@ export function Scene({ settings = DEFAULT_SETTINGS, restart = 0, cards, indicat
   if (sampled && sampled !== shown) setShown(sampled)
   const portrait = sampled ?? shown
 
-  return portrait && <PortraitCloud portrait={portrait} settings={settings} restart={restart} cards={cards} indicator={indicator} />
+  return portrait && <PortraitCloud portrait={portrait} settings={settings} restart={restart} cards={cards} mobile={mobile} indicator={indicator} />
 }
 
-function PortraitCloud({ portrait, settings, restart, cards, indicator }: { portrait: Portrait; settings: PortraitSettings; restart: number; cards?: GoalCardLayer; indicator?: IndicatorLink }) {
+function PortraitCloud({ portrait, settings, restart, cards, mobile, indicator }: { portrait: Portrait; settings: PortraitSettings; restart: number; cards?: GoalCardLayer; mobile: boolean; indicator?: IndicatorLink }) {
   const viewport = useThree((state) => state.viewport)
   const { fit, assembly, initialOpacity } = settings
   const scale = Math.min(viewport.height * fit.height, (viewport.width * fit.width) / portrait.aspect)
@@ -187,6 +188,7 @@ function PortraitCloud({ portrait, settings, restart, cards, indicator }: { port
         focal: (state.camera.projectionMatrix.elements[5] * height) / 2,
         width,
         height,
+        mobile,
         progress: current.progress,
         fog: { near: fogNear, far: fogFar },
         cardDepth: CARD_DEPTH,

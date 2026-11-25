@@ -2,7 +2,7 @@ import { type PointerEvent, memo, useCallback, useEffect, useMemo, useState, use
 import { clubes, goles } from '../data/goles.ts'
 import { es } from '../i18n/es.ts'
 import { GOAL_PIXELS } from '../portrait/sample.ts'
-import { BLURRED_CARDS, CARD_WINDOW } from './cardLayout.ts'
+import { CARD_WINDOW, isBlurredCard } from './cardLayout.ts'
 import type { GoalCardLayer } from './cardWindow.ts'
 import { type CardClub, type GoalCardData, goalCardData } from './goalCard.ts'
 import './tokens.css'
@@ -11,6 +11,7 @@ import './goalCards.css'
 interface GoalCardsProps {
   /** Its slots get one entry per mounted card, index i for goal i + 1; the scene moves them every frame. */
   layer: GoalCardLayer
+  mobile: boolean
   count?: number
 }
 
@@ -20,7 +21,7 @@ interface GoalCardsProps {
  * again only when the window slides, once per goal, and tracks the one open card; their screen
  * positions are written straight to the DOM by the scene (src/hud/cardLayout.ts).
  */
-export function GoalCards({ layer, count = GOAL_PIXELS }: GoalCardsProps) {
+export function GoalCards({ layer, mobile, count = GOAL_PIXELS }: GoalCardsProps) {
   const { mount, window: cardWindow } = layer
   const cards = useMemo(() => Array.from({ length: count }, (_, i) => goalCardData(i + 1, goles, clubes)), [count])
   const start = useSyncExternalStore(cardWindow.subscribe, cardWindow.start)
@@ -31,16 +32,17 @@ export function GoalCards({ layer, count = GOAL_PIXELS }: GoalCardsProps) {
   const hide = useCallback((numero: number) => setOpen((current) => (current === numero ? null : current)), [])
 
   // A card that leaves the window closes, so it does not open again when it comes back.
-  if (open !== null && (open <= start || open > end)) setOpen(null)
+  if (open !== null && (mobile || open <= start || open > end)) setOpen(null)
 
-  // On touch, a card closes when tapping outside it.
+  // Touch devices using the desktop layout can still tap outside to close.
   useEffect(() => {
+    if (mobile) return
     const close = (event: globalThis.PointerEvent) => {
       if (!(event.target instanceof Element) || !event.target.closest('.goal-card')) setOpen(null)
     }
     document.addEventListener('pointerdown', close)
     return () => document.removeEventListener('pointerdown', close)
-  }, [])
+  }, [mobile])
 
   return (
     <div className="goal-cards">
@@ -51,8 +53,9 @@ export function GoalCards({ layer, count = GOAL_PIXELS }: GoalCardsProps) {
           card={card}
           // The goal closest to the camera has the lowest number ahead: it stacks on top.
           zIndex={count - card.numero}
-          blurred={offset < BLURRED_CARDS}
-          open={open === card.numero}
+          blurred={isBlurredCard(offset)}
+          mobile={mobile}
+          open={!mobile && open === card.numero}
           onOpen={show}
           onClose={hide}
         />
@@ -75,19 +78,20 @@ const GoalSlot = memo(function GoalSlot({ mount, zIndex, blurred, ...cardProps }
 
   return (
     <div ref={setSlot} className={className} style={{ zIndex }}>
-      <GoalCard {...cardProps} />
+      <GoalCard {...cardProps} summary={cardProps.mobile && blurred} />
     </div>
   )
 })
 
 interface GoalCardProps {
   card: GoalCardData
+  mobile: boolean
   open: boolean
   onOpen: (numero: number) => void
   onClose: (numero: number) => void
 }
 
-const GoalCard = memo(function GoalCard({ card, open, onOpen, onClose }: GoalCardProps) {
+const GoalCard = memo(function GoalCard({ card, mobile, summary, open, onOpen, onClose }: GoalCardProps & { summary: boolean }) {
   const { numero } = card
   const fromMouse = (event: PointerEvent) => event.pointerType === 'mouse'
   const className = ['goal-card', 'hud-glass', open && 'goal-card--open', !card.scored && 'goal-card--missing']
@@ -97,22 +101,41 @@ const GoalCard = memo(function GoalCard({ card, open, onOpen, onClose }: GoalCar
   return (
     <article
       className={className}
-      tabIndex={0}
+      tabIndex={mobile ? undefined : 0}
       aria-label={card.label}
-      onPointerEnter={(event) => fromMouse(event) && onOpen(numero)}
-      onPointerLeave={(event) => fromMouse(event) && onClose(numero)}
-      onFocus={() => onOpen(numero)}
-      onBlur={() => onClose(numero)}
-      onClick={() => onOpen(numero)}
+      onPointerEnter={mobile ? undefined : (event) => fromMouse(event) && onOpen(numero)}
+      onPointerLeave={mobile ? undefined : (event) => fromMouse(event) && onClose(numero)}
+      onFocus={mobile ? undefined : () => onOpen(numero)}
+      onBlur={mobile ? undefined : () => onClose(numero)}
+      onClick={mobile ? undefined : () => onOpen(numero)}
     >
       <div className="goal-card__head">
         <p className="goal-card__number">{numero}</p>
         {open ? <Sticker scored={card.scored} /> : <StateMark scored={card.scored} />}
       </div>
+      {summary && <Summary card={card} />}
       {open && (card.scored ? <ScoredDetails card={card} /> : <MissingDetails remaining={card.remaining} />)}
     </article>
   )
 })
+
+function Summary({ card }: { card: GoalCardData }) {
+  return (
+    <>
+      <div className="goal-card__summary-teams">
+        {card.scored ? (
+          <>
+            <p className="goal-card__summary-own">{card.equipo.nombre}</p>
+            <p className="goal-card__summary-rival">
+              <span>{es.goalCard.versus}</span>{' '}{card.rival.nombre}
+            </p>
+          </>
+        ) : es.goalCard.summaryMissing}
+      </div>
+      <p className="goal-card__summary-date">{card.scored ? card.fecha : card.summaryRemaining}</p>
+    </>
+  )
+}
 
 function StateMark({ scored }: { scored: boolean }) {
   return scored ? <span className="goal-card__mark" aria-hidden="true" /> : <span className="goal-card__ring" aria-hidden="true" />

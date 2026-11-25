@@ -6,6 +6,8 @@ export const es = {
     scored: 'gol oficial',
     /** Sticker of a missing goal. */
     missing: 'por marcar',
+    summaryMissing: 'Por marcar',
+    summaryRemaining: (count: number) => count === 1 ? 'Falta 1' : `Faltan ${count}`,
     versus: 'vs',
     date: 'Fecha',
     /** Empty crest tile of a missing goal. */

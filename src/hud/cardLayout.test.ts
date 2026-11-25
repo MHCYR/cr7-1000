@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { TUNNEL, TUNNEL_FOG, tunnelPositions } from '../tunnel/tunnel.ts'
-import { CARD_DEPTH, CARD_REVEAL, CARD_WINDOW, READING_DISTANCE, type CardView, cardPlacement, layoutCards, visibleRange } from './cardLayout.ts'
+import { BLURRED_CARDS, CARD_DEPTH, CARD_REVEAL, CARD_WINDOW, READING_DISTANCE, type CardView, cardPlacement, layoutCards, visibleRange } from './cardLayout.ts'
 
 // A card depth past the fog, so these tests see the projection, size and fog alone.
 const view: CardView = { cameraZ: 0, focal: 1000, width: 1200, height: 800, progress: 1, fog: TUNNEL_FOG, cardDepth: { start: 200, end: 300 } }
@@ -40,6 +40,16 @@ describe('cardPlacement', () => {
   it('hides the cards until the goals reach the tunnel', () => {
     expect(cardPlacement(0, 0, -10, { ...view, progress: CARD_REVEAL.start })).toBeNull()
     expect(cardPlacement(0, 0, -10, { ...view, progress: CARD_REVEAL.end })?.opacity).toBe(1)
+  })
+
+  it('insets a blurred mobile card at both sides and both ends of the screen', () => {
+    const mobile = { ...view, mobile: true, width: 360 }
+    const bottomLeft = cardPlacement(-1.5, -3, -8, mobile, true)
+    const topRight = cardPlacement(1.5, 3, -8, mobile, true)
+
+    expect(bottomLeft).toMatchObject({ x: 82, y: 684, scale: 1 })
+    expect(topRight).toMatchObject({ x: 278, y: 48, scale: 1 })
+    expect(cardPlacement(10, 0, -8, mobile, true)).toBeNull()
   })
 
   it('hides cards behind the camera or off screen', () => {
@@ -104,6 +114,22 @@ describe('layoutCards', () => {
     expect(slots.map((s) => s.style.visibility)).toEqual(['', 'visible', 'visible', ''])
     expect(slots[0].style.transform).toBe('')
     expect(slots[3].style.transform).toBe('')
+  })
+
+  it('insets only the blurred cards from the start of the mobile window', () => {
+    const start = 5
+    const end = start + BLURRED_CARDS + 1
+    const positions = new Float32Array(end * 3)
+    const slots = Array.from({ length: end }, slot)
+    for (let i = start; i < end; i++) positions.set([-1.5, -3, -8], 3 * i)
+
+    layoutCards(slots, positions, { ...view, mobile: true, width: 360 }, [start, end])
+
+    expect(slots.slice(start, end - 1).map((card) => card.style.transform)).toEqual(
+      Array(BLURRED_CARDS).fill('translate3d(82.0px, 684.0px, 0) scale(1.0000) translate(-70px, -36px)'),
+    )
+    expect(slots[end - 1].style.visibility).toBe('visible')
+    expect(slots[end - 1].style.transform).toBe('translate3d(-7.5px, 775.0px, 0) scale(1.0000) translate(-70px, -36px)')
   })
 
   it('skips slots that React has not mounted yet', () => {
