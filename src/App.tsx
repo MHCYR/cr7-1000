@@ -5,6 +5,7 @@ import { GoalCards } from './hud/GoalCards.tsx'
 import { GoalIndicator } from './hud/GoalIndicator.tsx'
 import { createIndicatorLink } from './hud/goalIndicator.ts'
 import { es } from './i18n/es.ts'
+import { canvasDpr, isMobile } from './lib/device.ts'
 import type { PortraitSettings } from './portrait/settings.ts'
 import { GOAL_PIXELS } from './portrait/sample.ts'
 import { Scene } from './scene/Scene.tsx'
@@ -21,7 +22,7 @@ function PortraitView({ settings, restart }: { settings?: PortraitSettings; rest
   return (
     <>
       <div className="stage">
-        <Canvas camera={{ position: [0, 0, TUNNEL.cameraStart], fov: 50 }} dpr={[1, 2]}>
+        <Canvas camera={{ position: [0, 0, TUNNEL.cameraStart], fov: 50 }} dpr={canvasDpr(isMobile())}>
           <color attach="background" args={['#0a0a0a']} />
           <Scene settings={settings} restart={restart} cards={cards} indicator={indicator} />
         </Canvas>
