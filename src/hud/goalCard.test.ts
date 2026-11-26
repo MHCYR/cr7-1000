@@ -56,6 +56,7 @@ describe('goalCardData', () => {
       scored: false,
       label: 'Gol 988, por marcar',
       remaining: 'Faltan 998 goles para la meta',
+      summaryRemaining: 'Faltan 998',
     })
   })
 
@@ -64,5 +65,6 @@ describe('goalCardData', () => {
 
     expect(card.scored).toBe(false)
     expect(card.scored === false && card.remaining).toBe('Falta 1 gol para la meta')
+    expect(card.scored === false && card.summaryRemaining).toBe('Falta 1')
   })
 })

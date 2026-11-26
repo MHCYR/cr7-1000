@@ -11,7 +11,7 @@
 }
 
 @media (max-width: 639px) {
-  .hud-glass {
+  .hud-glass:not(.goal-card) {
     -webkit-backdrop-filter: var(--glass-blur-m);
     backdrop-filter: var(--glass-blur-m);
     border-radius: var(--radius-glass-m);
@@ -36,7 +36,7 @@
   pointer-events: auto;
 }
 
-/* Hundreds of blurred layers are too slow: only the closest cards, and an open one, blur. */
+/* Limit blur to the closest cards and the open desktop card. */
 .goal-slot--unblurred:not(.goal-slot--open) .hud-glass {
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
@@ -332,5 +332,109 @@
   .goal-card__ring::after {
     animation: none;
     opacity: 0;
+  }
+}
+
+.goal-card__summary {
+  display: none;
+}
+
+@media (pointer: coarse) and (max-width: 639px) {
+  .goal-slot {
+    pointer-events: none;
+    will-change: transform;
+  }
+
+  .goal-card {
+    width: 140px;
+    gap: var(--space-1);
+    padding: var(--space-2);
+    cursor: default;
+    border-radius: var(--radius-glass-m);
+    -webkit-backdrop-filter: var(--glass-blur-m);
+    backdrop-filter: var(--glass-blur-m);
+    transition: none;
+  }
+
+  .goal-card__head {
+    position: relative;
+    gap: 0;
+  }
+
+  .goal-card__mark,
+  .goal-card__ring {
+    position: absolute;
+    top: 0;
+    right: 0;
+  }
+
+  .goal-card__ring::after {
+    animation: none;
+    opacity: 0;
+  }
+
+  /* Every mobile card carries text, so every one needs the denser fill: at 0.6 the white text
+     of the card behind shows through even the blurred ones. */
+  .goal-card {
+    background: var(--glass-fill-unblurred-m);
+  }
+
+  .goal-card__summary {
+    display: grid;
+    gap: var(--space-1);
+    min-width: 0;
+  }
+
+  /* Grid items default to min-width: auto, which lets a long club name push past the card
+     instead of ending in an ellipsis. */
+  .goal-card__summary-teams {
+    min-width: 0;
+    font-size: 14px;
+    line-height: 17px;
+    font-weight: 700;
+  }
+
+  .goal-card__summary-own,
+  .goal-card__summary-rival {
+    margin: 0;
+    overflow: hidden;
+  }
+
+  .goal-card__summary-own {
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .goal-card__summary-rival {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    max-height: 34px;
+    overflow-wrap: anywhere;
+  }
+
+  .goal-card__summary-rival span {
+    font-family: var(--font-tag);
+    font-weight: 400;
+    color: var(--chalk-muted);
+  }
+
+  .goal-card__summary-date {
+    margin: 0;
+    padding-top: var(--space-1);
+    border-top: var(--border-brutal) solid var(--chalk);
+    color: var(--chalk-muted);
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .goal-card--missing .goal-card__summary-teams {
+    color: var(--chalk-muted);
+  }
+
+  .goal-card--missing .goal-card__summary-date {
+    border-top: var(--border-brutal) dashed var(--concrete);
   }
 }

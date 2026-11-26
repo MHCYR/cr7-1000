@@ -1,9 +1,9 @@
 // Where each goal card sits on screen (DESIGN.md, Comportamiento en el túnel). The camera only
 // moves along Z and looks down -Z, so a goal at depth d in front of it projects to the screen
 // center plus its X/Y times focal / d. Cards keep their design size up to READING_DISTANCE and
-// shrink with the perspective beyond it, fading in the same fog as the goal pixels did.
-// Only the CARD_WINDOW goals ahead of the camera are cards (#21); past CARD_DEPTH the cards fade
-// back into goal pixels, which the vertex shader shows from that same depth on.
+// shrink with perspective beyond it. Resting cards fade in the same fog as the goal pixels.
+// Both modes share a bounded card window (#21); the vertex shader brings goal pixels back at
+// the same depth where the cards fade out.
 
 import { TUNNEL, type TunnelFog, currentGoal, smoothstep, tunnelFade } from '../tunnel/tunnel.ts'
 
@@ -13,7 +13,7 @@ export const READING_DISTANCE = 8
 /** Scroll progress over which the cards take over from the goal pixels as these reach the tunnel. */
 export const CARD_REVEAL = { start: 0.8, end: 1 } as const
 
-/** Most goal cards mounted at once: the goals ahead of them stay as goal pixels. */
+/** Most goal cards mounted at once. */
 export const CARD_WINDOW = 48
 
 /**
@@ -29,14 +29,22 @@ export const CARD_DEPTH = {
 /** Cards closest to the camera that blur the tunnel behind them; the rest skip backdrop-filter. */
 export const BLURRED_CARDS = 12
 
+export function isBlurredCard(offset: number): boolean {
+  return offset < BLURRED_CARDS
+}
+
 /** Point of the resting card that sits on its goal, in CSS pixels from its top left corner. */
 export const CARD_ANCHOR = { x: 80, y: 36 } as const
 
 /** Largest card, open, in CSS pixels: a card farther than this past the screen edge is not drawn. */
 const CARD_EXTENT = { width: 272, height: 320 } as const
 
+// The summary can reach 140px tall with a two-line rival.
+const MOBILE_EXTENT = { width: 140, height: 140 } as const
+const MOBILE_INSET = 12
+
 export interface CardPlacement {
-  /** Screen position of the goal, in CSS pixels from the top left corner. */
+  /** Screen position of the card anchor in CSS pixels. */
   x: number
   y: number
   scale: number
@@ -49,6 +57,7 @@ export interface CardView {
   focal: number
   width: number
   height: number
+  mobile?: boolean
   /** Scroll progress, 0 with the portrait, 1 with every goal in the tunnel. */
   progress: number
   fog: TunnelFog
@@ -77,13 +86,20 @@ export function cardPlacement(x: number, y: number, z: number, view: CardView): 
   if (opacity <= 0.01) return null
 
   const scale = Math.min(1, READING_DISTANCE / depth)
+  const { width, height } = view.mobile ? MOBILE_EXTENT : CARD_EXTENT
+  const anchorX = view.mobile ? MOBILE_EXTENT.width / 2 : CARD_ANCHOR.x
   const screenX = view.width / 2 + (x * view.focal) / depth
   const screenY = view.height / 2 - (y * view.focal) / depth
-  const left = screenX - CARD_ANCHOR.x * scale
+  const left = screenX - anchorX * scale
   const top = screenY - CARD_ANCHOR.y * scale
   if (left > view.width || top > view.height) return null
-  if (left + CARD_EXTENT.width * scale < 0 || top + CARD_EXTENT.height * scale < 0) return null
-  return { x: screenX, y: screenY, scale, opacity }
+  if (left + width * scale < 0 || top + height * scale < 0) return null
+  if (!view.mobile) return { x: screenX, y: screenY, scale, opacity }
+
+  // Cull before clamping so goals outside the frame do not pile up at the edges.
+  const insetLeft = Math.max(MOBILE_INSET, Math.min(left, view.width - MOBILE_INSET - width * scale))
+  const insetTop = Math.max(MOBILE_INSET, Math.min(top, view.height - MOBILE_INSET - height * scale))
+  return { x: insetLeft + anchorX * scale, y: insetTop + CARD_ANCHOR.y * scale, scale, opacity }
 }
 
 /**
@@ -96,10 +112,12 @@ export function cardPlacement(x: number, y: number, z: number, view: CardView): 
  */
 export function layoutCards(slots: readonly (HTMLElement | null)[], positions: Float32Array, view: CardView, range: readonly [number, number]): number {
   const end = Math.min(range[1], positions.length / 3)
+  const anchorX = view.mobile ? MOBILE_EXTENT.width / 2 : CARD_ANCHOR.x
   let closest = 0
   for (let i = range[0]; i < end; i++) {
     const slot = i < slots.length ? slots[i] : null
-    const placement = cardPlacement(positions[i * 3], positions[i * 3 + 1], positions[i * 3 + 2], view)
+    const index = i * 3
+    const placement = cardPlacement(positions[index], positions[index + 1], positions[index + 2], view)
     if (placement && closest === 0) closest = i + 1
     if (!slot) continue
     if (!placement) {
@@ -109,7 +127,7 @@ export function layoutCards(slots: readonly (HTMLElement | null)[], positions: F
     const { x, y, scale, opacity } = placement
     slot.style.visibility = 'visible'
     slot.style.opacity = opacity.toFixed(3)
-    slot.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) scale(${scale.toFixed(4)}) translate(-${CARD_ANCHOR.x}px, -${CARD_ANCHOR.y}px)`
+    slot.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) scale(${scale.toFixed(4)}) translate(-${anchorX}px, -${CARD_ANCHOR.y}px)`
   }
   return closest
 }

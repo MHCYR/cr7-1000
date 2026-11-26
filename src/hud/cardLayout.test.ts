@@ -42,6 +42,22 @@ describe('cardPlacement', () => {
     expect(cardPlacement(0, 0, -10, { ...view, progress: CARD_REVEAL.end })?.opacity).toBe(1)
   })
 
+  it('insets a mobile summary at both sides and both ends of the screen', () => {
+    const mobile = { ...view, mobile: true, width: 360 }
+    const bottomLeft = cardPlacement(-0.5625, -1.125, -3, mobile)
+    const topRight = cardPlacement(0.5625, 1.125, -3, mobile)
+
+    expect(bottomLeft).toMatchObject({ x: 82, y: 684, scale: 1 })
+    expect(topRight).toMatchObject({ x: 278, y: 48, scale: 1 })
+  })
+
+  it('culls mobile cards that are fully outside each edge before applying the inset', () => {
+    const mobile = { ...view, mobile: true, width: 360 }
+    for (const [x, y] of [[-0.8, 0], [0.8, 0], [0, -1.4], [0, 1.6]]) {
+      expect(cardPlacement(x, y, -3, mobile)).toBeNull()
+    }
+  })
+
   it('hides cards behind the camera or off screen', () => {
     expect(cardPlacement(0, 0, 1, view)).toBeNull()
     expect(cardPlacement(0, 0, 0, view)).toBeNull()
@@ -104,6 +120,20 @@ describe('layoutCards', () => {
     expect(slots.map((s) => s.style.visibility)).toEqual(['', 'visible', 'visible', ''])
     expect(slots[0].style.transform).toBe('')
     expect(slots[3].style.transform).toBe('')
+  })
+
+  it('insets all visible mobile cards across the card window', () => {
+    const mobile = { ...view, mobile: true, width: 360, cardDepth: CARD_DEPTH }
+    const depths = [1, 2, 3, 4, 5, 6]
+    const positions = new Float32Array(depths.flatMap((depth) => [-0.1875 * depth, -0.375 * depth, -depth]))
+    const slots = depths.map(slot)
+
+    layoutCards(slots, positions, mobile, [0, slots.length])
+
+    expect(slots.map((card) => card.style.visibility)).toEqual(depths.map(() => 'visible'))
+    expect(slots.map((card) => card.style.transform)).toEqual(
+      depths.map(() => 'translate3d(82.0px, 684.0px, 0) scale(1.0000) translate(-70px, -36px)'),
+    )
   })
 
   it('skips slots that React has not mounted yet', () => {

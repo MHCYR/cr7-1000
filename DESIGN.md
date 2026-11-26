@@ -88,13 +88,13 @@ Bungee es ancha: a 104px los cuatro dígitos de «1000» caben en una card de 38
 
 Cada gol del túnel es una card de vidrio en lugar de un punto. Dirección elegida: **solo el número en reposo, todos los datos al pasar el cursor** (versión B del canvas [Card del gol](https://claude.ai/artifact/KHA2jfxbMmvK9sbQ3aP4Jc), componente `project/CardCompact.dc.html`).
 
-**En reposo** (160px de ancho, padding 14px arriba, 16px a los lados y abajo):
+**En reposo en desktop** (160px de ancho, padding 14px arriba, 16px a los lados y abajo):
 
 - Número en Bungee a 44px, en `chalk`, con extrusión `2px 2px 0` `ink` + `4px 4px 0` `metro`.
 - Arriba a la derecha, la marca de estado: un cuadro `spray` de 14×14 con borde `ink` de `border-brutal` y sombra `2px 2px 0` `metro` si el gol está marcado, o el anillo pulsante en `concrete` (12×12) si falta.
 - Nada más: ni escudos, ni fecha, ni pegatina.
 
-**Abierta** (al pasar el cursor o al recibir el foco con el teclado): la card se ensancha a 272px en 0.18s (`ease-out`) y el contenido nuevo entra con un fundido de 6px hacia abajo. De arriba abajo:
+**Abierta en desktop** (al pasar el cursor o al recibir el foco con el teclado): la card se ensancha a 272px en 0.18s (`ease-out`) y el contenido nuevo entra con un fundido de 6px hacia abajo. De arriba abajo:
 
 1. **Número y pegatina:** el número se queda donde estaba, igual de grande; la marca de estado se convierte en la pegatina «gol oficial» (`spray`, sombra `metro`) o «por marcar» (`wall`, borde punteado `concrete`, con el anillo), en `tag-m` y girada `sticker-tilt`.
 2. **Escudos:** el escudo del equipo de CR7 a la izquierda y el del rival a la derecha, con «vs» en `tag` (24px) entre los dos. Cada escudo va en una baldosa de 64×64 con fondo `chalk`, borde `ink` de `border-brutal` y sombra dura: `spray` la del equipo de CR7, `metro` la del rival. Debajo de cada uno, el nombre del equipo en `label`.
@@ -103,6 +103,14 @@ Cada gol del túnel es una card de vidrio en lugar de un punto. Dirección elegi
 **Gol faltante:** el número va en `goal-number-missing` (Bungee Outline, en `concrete`, sin extrusión). Abierta, las baldosas de escudo son huecos de `wall` con borde punteado `concrete` y un «?», y la fecha se sustituye por «Faltan N goles para la meta» en `chalk-muted`, sobre una línea punteada. Sin equipo, rival ni fecha.
 
 **Escudos:** el diseño usa marcadores de posición con las iniciales del equipo. Las imágenes reales van dentro de la baldosa blanca, centradas y contenidas (`object-fit: contain`) con 8px de aire, y llevan `alt` con el nombre del equipo («Escudo de Al-Nassr»). Los escudos son marcas registradas: hace falta elegir una fuente de imágenes con licencia antes de publicar.
+
+**Resumen en móvil** (`(pointer: coarse) and (max-width: 639px)`): placa de 140px con vidrio móvil. El gesto táctil desplaza el túnel y la placa mantiene su ancho. Todas las cards visibles muestran el resumen en tres niveles.
+
+1. **Número:** Bungee a 44px con extrusión de 2px en `ink` y 4px en `metro`, junto al cuadro `spray` o el anillo `concrete`. El gol faltante usa `goal-number-missing`.
+2. **Equipos:** Rubik 14px/17px, peso 700, en `chalk` y sin escudos. El equipo de CR7 ocupa una línea. Debajo va «vs» en Sedgwick Ave Display y `chalk-muted`, seguido del rival, con un máximo de dos líneas. El gol faltante muestra «Por marcar» en `chalk-muted`.
+3. **Fecha:** Rubik 12px/16px, peso 600, en `chalk-muted` con cifras tabulares, sobre una línea `chalk` de `border-brutal`. El gol faltante muestra «Faltan N» sobre una línea punteada `concrete`.
+
+Las cards completamente fuera del encuadre se descartan antes de ajustar la posición de las visibles a 12px de los bordes. Solo las 12 más cercanas pueden desenfocar el fondo. Las demás usan `glass-fill-unblurred-m` (opacidad de 0,92) para que el texto de las cards de atrás no compita con el resumen. La apertura táctil descrita en el comportamiento del túnel corresponde a dispositivos que usan la variante de escritorio.
 
 ### GoalIndicator: Cristiano en el gol actual
 

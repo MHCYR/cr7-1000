@@ -1,6 +1,4 @@
-// What a goal card says (DESIGN.md, GoalCard): number, state and, once opened, both crests and
-// the date of a scored goal, or how many goals are left for a missing one. Pure, so the copy is
-// tested without a browser.
+// Text and crest data shared by the desktop and mobile goal cards (DESIGN.md, GoalCard).
 
 import type { Club, Clubes, Gol } from '../data/gol.ts'
 import { es } from '../i18n/es.ts'
@@ -36,7 +34,7 @@ export interface CardClub {
 
 export type GoalCardData =
   | { numero: number; scored: true; label: string; equipo: CardClub; rival: CardClub; fecha: string }
-  | { numero: number; scored: false; label: string; remaining: string }
+  | { numero: number; scored: false; label: string; remaining: string; summaryRemaining: string }
 
 export function cardClub({ nombre, escudo }: Club): CardClub {
   return { nombre, escudo, alt: es.goalCard.crestAlt(nombre), initials: crestInitials(nombre) }
@@ -46,11 +44,13 @@ export function cardClub({ nombre, escudo }: Club): CardClub {
 export function goalCardData(numero: number, goles: Gol[], clubes: Clubes, target: number = GOAL_TARGET): GoalCardData {
   const gol = goles[numero - 1]
   if (!gol) {
+    const remaining = Math.max(target - goles.length, 0)
     return {
       numero,
       scored: false,
       label: es.goalCard.missingLabel(numero),
-      remaining: es.goalCard.remaining(Math.max(target - goles.length, 0)),
+      remaining: es.goalCard.remaining(remaining),
+      summaryRemaining: es.goalCard.summaryRemaining(remaining),
     }
   }
   const equipo = cardClub(clubes[gol.equipoId])
