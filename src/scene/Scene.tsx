@@ -9,9 +9,9 @@ import { assemblyEnd } from '../portrait/assemble.ts'
 import { loadImagePixels } from '../portrait/load.ts'
 import { goalColors } from '../portrait/palette.ts'
 import { choosePortrait } from '../portrait/pick.ts'
-import { type Portrait, samplePortrait } from '../portrait/sample.ts'
+import { GOAL_PIXELS, type Portrait, samplePortrait } from '../portrait/sample.ts'
 import { type PortraitSettings, buildBuffers, defaultSettings, samplingOptions } from '../portrait/settings.ts'
-import { GOAL_REVEAL, type ScrollState, TUNNEL, currentGoal, scrollState, tunnelPositions } from '../tunnel/tunnel.ts'
+import { GOAL_REVEAL, type ScrollState, TUNNEL, currentGoal, scrollHeight, scrollState, tunnelPositions } from '../tunnel/tunnel.ts'
 import { AssemblingPoints } from './AssemblingPoints.tsx'
 import { createClock, restartClock, tickClock } from './animationClock.ts'
 
@@ -133,6 +133,21 @@ function PortraitCloud({ portrait, settings, restart, cards, indicator }: { port
   )
   // Read and damped every frame, outside React: scrolling never rerenders the scene.
   const scroll = useRef<ScrollState>({ progress: 0, fill: 0, cameraZ: TUNNEL.cameraStart })
+  // Starts at the current viewport so the first frames, before the spacer is measured, don't
+  // read a zero height (which would count the fill as finished).
+  const stableViewportHeight = useRef(window.innerHeight)
+  useEffect(() => {
+    const spacer = document.getElementById('tunnel-scroll')
+    if (!spacer) return
+    // The spacer uses the large viewport, which stays fixed as browser chrome moves.
+    const measure = () => {
+      stableViewportHeight.current = spacer.offsetHeight - Math.round(scrollHeight(GOAL_PIXELS))
+    }
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(spacer)
+    return () => observer.disconnect()
+  }, [])
   // Goals between the camera and the current goal, damped (LEAD_DAMPING).
   const lead = useRef(0)
 
@@ -152,7 +167,7 @@ function PortraitCloud({ portrait, settings, restart, cards, indicator }: { port
     }
     tickClock(clock.current, state.clock.elapsedTime, end, reducedMotion.current)
 
-    const target = scrollState(window.scrollY, window.innerHeight, portrait.goals.count)
+    const target = scrollState(window.scrollY, stableViewportHeight.current, portrait.goals.count)
     const current = scroll.current
     if (reducedMotion.current) Object.assign(current, target)
     else {
