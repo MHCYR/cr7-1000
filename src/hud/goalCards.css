@@ -31,13 +31,12 @@
   top: 0;
   left: 0;
   visibility: hidden;
-  z-index: var(--goal-slot-order);
   transform-origin: 0 0;
   will-change: transform, opacity;
   pointer-events: auto;
 }
 
-/* Limit blur to the closest cards, the open desktop card and mobile summaries. */
+/* Limit blur to the closest cards and the open desktop card. */
 .goal-slot--unblurred:not(.goal-slot--open) .hud-glass {
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
@@ -340,15 +339,10 @@
   display: none;
 }
 
-@keyframes goal-card-summary-in {
-  from {
-    opacity: 0;
-  }
-}
-
 @media (pointer: coarse) and (max-width: 639px) {
   .goal-slot {
     pointer-events: none;
+    will-change: transform;
   }
 
   .goal-card {
@@ -379,28 +373,22 @@
     opacity: 0;
   }
 
-  .goal-slot--summary {
-    z-index: calc(10000 + var(--goal-slot-order));
-    will-change: transform;
+  /* Every mobile card carries text, so every one needs the denser fill: at 0.6 the white text
+     of the card behind shows through even the blurred ones. */
+  .goal-card {
+    background: var(--glass-fill-unblurred-m);
   }
 
-  .goal-slot--unblurred.goal-slot--summary .hud-glass {
-    -webkit-backdrop-filter: var(--glass-blur-m);
-    backdrop-filter: var(--glass-blur-m);
-  }
-
-  .goal-slot--summary .goal-card__summary {
+  .goal-card__summary {
     display: grid;
     gap: var(--space-1);
+    min-width: 0;
   }
 
-  @media (prefers-reduced-motion: no-preference) {
-    .goal-slot--summary .goal-card__summary {
-      animation: goal-card-summary-in 120ms ease-out;
-    }
-  }
-
+  /* Grid items default to min-width: auto, which lets a long club name push past the card
+     instead of ending in an ellipsis. */
   .goal-card__summary-teams {
+    min-width: 0;
     font-size: 14px;
     line-height: 17px;
     font-weight: 700;

@@ -10,11 +10,6 @@ import { TUNNEL, type TunnelFog, currentGoal, smoothstep, tunnelFade } from '../
 /** Depth, in world units, at which a card shows at its design size: about the closest one on screen. */
 export const READING_DISTANCE = 8
 
-// Screen position varies as 1/depth, so at depth 3 a card moves about 9 times slower
-// than at depth 1 for the same camera speed, leaving more time to read.
-export const SUMMARY_ZONE = { near: 16 * TUNNEL.separation, far: 30 * TUNNEL.separation } as const
-export const SUMMARY_MAX = 4
-
 /** Scroll progress over which the cards take over from the goal pixels as these reach the tunnel. */
 export const CARD_REVEAL = { start: 0.8, end: 1 } as const
 
@@ -44,10 +39,8 @@ export const CARD_ANCHOR = { x: 80, y: 36 } as const
 /** Largest card, open, in CSS pixels: a card farther than this past the screen edge is not drawn. */
 const CARD_EXTENT = { width: 272, height: 320 } as const
 
-const MOBILE_WIDTH = 140
-// The number plate is 58px tall, and the summary can reach 140px with a two-line rival.
-const MOBILE_RESTING_HEIGHT = 58
-const MOBILE_SUMMARY_HEIGHT = 140
+// The summary can reach 140px tall with a two-line rival.
+const MOBILE_EXTENT = { width: 140, height: 140 } as const
 const MOBILE_INSET = 12
 
 export interface CardPlacement {
@@ -83,7 +76,7 @@ export function visibleRange(cameraZ: number, separation: number, max: number, c
 }
 
 /** The card of the goal at world (x, y, z), or null when it is hidden: behind the camera, in the fog or off screen. */
-export function cardPlacement(x: number, y: number, z: number, view: CardView, summary = false): CardPlacement | null {
+export function cardPlacement(x: number, y: number, z: number, view: CardView): CardPlacement | null {
   const depth = view.cameraZ - z
   if (depth <= 0) return null
   const opacity =
@@ -93,16 +86,15 @@ export function cardPlacement(x: number, y: number, z: number, view: CardView, s
   if (opacity <= 0.01) return null
 
   const scale = Math.min(1, READING_DISTANCE / depth)
-  const width = view.mobile ? MOBILE_WIDTH : CARD_EXTENT.width
-  const height = view.mobile ? (summary ? MOBILE_SUMMARY_HEIGHT : MOBILE_RESTING_HEIGHT) : CARD_EXTENT.height
-  const anchorX = view.mobile ? MOBILE_WIDTH / 2 : CARD_ANCHOR.x
+  const { width, height } = view.mobile ? MOBILE_EXTENT : CARD_EXTENT
+  const anchorX = view.mobile ? MOBILE_EXTENT.width / 2 : CARD_ANCHOR.x
   const screenX = view.width / 2 + (x * view.focal) / depth
   const screenY = view.height / 2 - (y * view.focal) / depth
   const left = screenX - anchorX * scale
   const top = screenY - CARD_ANCHOR.y * scale
   if (left > view.width || top > view.height) return null
   if (left + width * scale < 0 || top + height * scale < 0) return null
-  if (!summary) return { x: screenX, y: screenY, scale, opacity }
+  if (!view.mobile) return { x: screenX, y: screenY, scale, opacity }
 
   // Cull before clamping so goals outside the frame do not pile up at the edges.
   const insetLeft = Math.max(MOBILE_INSET, Math.min(left, view.width - MOBILE_INSET - width * scale))
@@ -120,20 +112,12 @@ export function cardPlacement(x: number, y: number, z: number, view: CardView, s
  */
 export function layoutCards(slots: readonly (HTMLElement | null)[], positions: Float32Array, view: CardView, range: readonly [number, number]): number {
   const end = Math.min(range[1], positions.length / 3)
-  const anchorX = view.mobile ? MOBILE_WIDTH / 2 : CARD_ANCHOR.x
+  const anchorX = view.mobile ? MOBILE_EXTENT.width / 2 : CARD_ANCHOR.x
   let closest = 0
-  let summaries = 0
   for (let i = range[0]; i < end; i++) {
     const slot = i < slots.length ? slots[i] : null
     const index = i * 3
-    const z = positions[index + 2]
-    const depth = view.cameraZ - z
-    // Goal indices already run from the nearest to the farthest.
-    const eligible = view.mobile && summaries < SUMMARY_MAX && depth >= SUMMARY_ZONE.near && depth <= SUMMARY_ZONE.far
-    const summaryPlacement = eligible ? cardPlacement(positions[index], positions[index + 1], z, view, true) : null
-    if (summaryPlacement) summaries++
-    const placement = summaryPlacement ?? cardPlacement(positions[index], positions[index + 1], z, view)
-    if (slot && view.mobile) slot.classList.toggle('goal-slot--summary', summaryPlacement !== null)
+    const placement = cardPlacement(positions[index], positions[index + 1], positions[index + 2], view)
     if (placement && closest === 0) closest = i + 1
     if (!slot) continue
     if (!placement) {

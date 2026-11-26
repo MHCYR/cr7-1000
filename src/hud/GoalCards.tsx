@@ -1,4 +1,4 @@
-import { type CSSProperties, type PointerEvent, memo, useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react'
+import { type PointerEvent, memo, useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import { clubes, goles } from '../data/goles.ts'
 import { es } from '../i18n/es.ts'
 import { GOAL_PIXELS } from '../portrait/sample.ts'
@@ -67,7 +67,7 @@ export function GoalCards({ layer, mobile, count = GOAL_PIXELS }: GoalCardsProps
 interface GoalSlotProps extends GoalCardProps {
   mount: GoalCardLayer['mount']
   zIndex: number
-  /** The closest cards blur even in their resting state. */
+  /** The closest cards blur the tunnel behind them. */
   blurred: boolean
 }
 
@@ -77,7 +77,7 @@ const GoalSlot = memo(function GoalSlot({ mount, zIndex, blurred, ...cardProps }
   const className = ['goal-slot', cardProps.open && 'goal-slot--open', !blurred && 'goal-slot--unblurred'].filter(Boolean).join(' ')
 
   return (
-    <div ref={setSlot} className={className} style={{ '--goal-slot-order': zIndex } as CSSProperties}>
+    <div ref={setSlot} className={className} style={{ zIndex }}>
       <GoalCard {...cardProps} />
     </div>
   )

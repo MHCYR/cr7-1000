@@ -104,13 +104,13 @@ Cada gol del túnel es una card de vidrio en lugar de un punto. Dirección elegi
 
 **Escudos:** el diseño usa marcadores de posición con las iniciales del equipo. Las imágenes reales van dentro de la baldosa blanca, centradas y contenidas (`object-fit: contain`) con 8px de aire, y llevan `alt` con el nombre del equipo («Escudo de Al-Nassr»). Los escudos son marcas registradas: hace falta elegir una fuente de imágenes con licencia antes de publicar.
 
-**Resumen en móvil** (`(pointer: coarse) and (max-width: 639px)`): placa de 140px con vidrio móvil. El gesto táctil desplaza el túnel y la placa mantiene su ancho. El resumen aparece en hasta cuatro cards a media distancia, las visibles más cercanas entre 16 y 30 goles por delante de la cámara. Allí se mueven más despacio y dejan más tiempo para leer sus tres niveles.
+**Resumen en móvil** (`(pointer: coarse) and (max-width: 639px)`): placa de 140px con vidrio móvil. El gesto táctil desplaza el túnel y la placa mantiene su ancho. Todas las cards visibles muestran el resumen en tres niveles.
 
 1. **Número:** Bungee a 44px con extrusión de 2px en `ink` y 4px en `metro`, junto al cuadro `spray` o el anillo `concrete`. El gol faltante usa `goal-number-missing`.
 2. **Equipos:** Rubik 14px/17px, peso 700, en `chalk` y sin escudos. El equipo de CR7 ocupa una línea. Debajo va «vs» en Sedgwick Ave Display y `chalk-muted`, seguido del rival, con un máximo de dos líneas. El gol faltante muestra «Por marcar» en `chalk-muted`.
 3. **Fecha:** Rubik 12px/16px, peso 600, en `chalk-muted` con cifras tabulares, sobre una línea `chalk` de `border-brutal`. El gol faltante muestra «Faltan N» sobre una línea punteada `concrete`.
 
-La zona de resumen queda dentro de la ventana de 48 cards. Las cards con resumen se mantienen a 12px de los bordes y desenfocan el fondo aunque queden fuera del grupo de las 12 más cercanas. El texto entra con un fundido breve que se desactiva con movimiento reducido. Las demás cards, incluidas las que quedan a menos de 16 goles por delante de la cámara, muestran el número y la marca de estado en una placa de 140px que sigue la posición y la escala proyectadas de su gol. La apertura táctil descrita en el comportamiento del túnel corresponde a dispositivos que usan la variante de escritorio.
+Las cards completamente fuera del encuadre se descartan antes de ajustar la posición de las visibles a 12px de los bordes. Solo las 12 más cercanas pueden desenfocar el fondo. Las demás usan `glass-fill-unblurred-m` (opacidad de 0,92) para que el texto de las cards de atrás no compita con el resumen. La apertura táctil descrita en el comportamiento del túnel corresponde a dispositivos que usan la variante de escritorio.
 
 ### GoalIndicator: Cristiano en el gol actual
 
