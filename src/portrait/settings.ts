@@ -1,6 +1,7 @@
 import { ASSEMBLY, SCATTER, type AssemblyTiming, fillDelays, goalDelays, scatterStart } from './assemble.ts'
 import { EDGE_DISPERSION, EDGE_SHRINK, FILL_SIZE, disperseEdges, fillSizes } from './fill.ts'
 import { EDGE_BAND, FILL_DENSITY, type Portrait, type PortraitOptions } from './sample.ts'
+import { isMobile } from '../lib/device.ts'
 import { FILL_ZOOM, TUNNEL, TUNNEL_FOG, TUNNEL_GOAL_SCALE, type FillZoom, fillOrder } from '../tunnel/tunnel.ts'
 
 // Every number that shapes the portrait, in one plain object: the dev controls edit it, and
@@ -47,7 +48,7 @@ export const DEFAULT_SEED = 1000
 /** Largest integer seed before the 8-slot buffer blocks repeat as uint32. */
 export const SEED_MAX = 2 ** 29 - 1
 
-// Choosing the density per device is #7; desktop for now.
+// Desktop defaults; defaultSettings() swaps the density for mobile devices (#7).
 // Replace this declaration with “Copiar valores” to adopt a tuned portrait.
 export const PORTRAIT_DEFAULTS: PortraitSettings = {
   assembly: { ...ASSEMBLY },
@@ -62,8 +63,12 @@ export const PORTRAIT_DEFAULTS: PortraitSettings = {
 }
 
 /** Independent copies: editing a live configuration never changes source defaults. */
-export function defaultSettings(): PortraitSettings {
-  return structuredClone(PORTRAIT_DEFAULTS)
+export function defaultSettings(matchMedia?: (query: string) => { matches: boolean }): PortraitSettings {
+  const settings = structuredClone(PORTRAIT_DEFAULTS)
+  // Mobile builds a lighter cloud of fill pixels so the portrait still runs smoothly (#7).
+  // Desktop keeps whatever PORTRAIT_DEFAULTS says, so a pasted tuned density still applies.
+  if (isMobile(matchMedia)) settings.sampling.density = FILL_DENSITY.mobile
+  return settings
 }
 
 /** Complete TypeScript declaration, ready to paste over PORTRAIT_DEFAULTS above. */
